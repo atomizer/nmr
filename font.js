@@ -13,20 +13,6 @@ font.onload = function() {
 	}
 }
 
-// font.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAAAwCAIAAABWluX'+
-// 'pAAACpUlEQVR42u1by4LEIAjj/3/avc5DMQmgdlZP3c6WquERwFpbMsxssfDSN2ZOXlsY9ZO9jK7'+
-// 'wj0e+/9nZUGej/Uc2wva29iwA7H3gS3I2GpEjAKBJK7JXS/QbU2xwjEf/H99lR1G69x3h1DxHU7J'+
-// 'EYKdzQrwK6HmeaAH99VZbwAgVJAaAmlgdA4I6Prl/WdDmybc79u3+BeCMPGDko6csIuLrnaBNyXd'+
-// 'Yk8BS4nbgxIDhJNMZCMLlZR4i5A3BnI6is9MldBRLmKimuSMLoCiQYAERI9CedTCLWkCEGkYsBrk'+
-// 'TyT+03RQsAI0BkUwSqoHwPp3NnFn113K6aGZ+ecjiStwF4KDdvwAcnAdk8XGE7bD5QYTmRuhsnP7'+
-// '2FyULzbpew6BAACgu/k0uX/8E96FvBAJ/ZzdIyKipebIA4FSwvZdUv987uj8EIG5iKy0gRX7cAvx'+
-// 'r1FU2oAcb4e9CDHB0NiUGTDWdtfhQDLg8ZD8LuuMCcEQixrYeswrdlp4HsCyFuv64EORQsae6s2/'+
-// 'VrIatYrIANPc4TMsokbJ9ArZ4Z6UsaAEAKWkdq0BZ5SOL8FxN3xG6hvD0qQW01LMnLGZRABLzg8a'+
-// 'fgPM7Ski679zRMucWbuzoLOgpJ41PZkFD4C8BvXnAv88/2AfkN1W8Iou/7zqwPmHKLNeMH5wSimg'+
-// 'pSanWD+iSAn9/UBeUXrbF5fgaGpxP4z88Adf1IQGd514AIgtOB8DPP1YDMK0F7XJBpRZQBwDtgk6'+
-// 'mDdsl/FMamhtsLwCPMa/SL3Bs16oe5NxKUwRjg6pfesSDtsxqoqzDLacnAoN/ZpvG04XGRRyANjv'+
-// 'lIPQnIj8pDZksft2AEx8nAFBxKG+1C8KTgKZ9NsX3A1J62nsA+I0QWlfaq2VBPwxA1smR0vEHWdp'+
-// '73gBSZjkAAAAASUVORK5CYII=';
 font.src = './font.png'
 
 exports.putStr = function(c, x, y, s) {
