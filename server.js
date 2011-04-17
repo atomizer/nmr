@@ -5,7 +5,7 @@ var request = require('request')
 MAP_URI = 'http://www.nmaps.net/ID/data'
 
 var nmr = require('./nmr');
-var ROOT = '/tmp/nmr';
+var ROOT = '/tmp';
 
 var s = http.createServer();
 
