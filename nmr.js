@@ -173,7 +173,7 @@ function prepImage(url, filter) {
 	if (!url || !(m = url.match(url_re))) return null;
 	url = m[1];
 	if (typeof filter == 'undefined') filter = +m[2] || 0;
-	console.log('fetching image:', url, filter ? ('filter '+filter) : '');
+	console.log('image required:', url, filter ? (', filter #'+filter) : '');
 	
 	// here we should set img to an instance of Canvas
 	
@@ -649,6 +649,9 @@ function drawObject(str) {
 		c.fillStyle = 'rgba(255,255,255,0.5)';
 		rect(c,0,0,18,18,1,1);
 		c.fillStyle = '#000';
+		c.textAlign = 'center';
+		c.textBaseline = 'middle';
+		c.font = '15px sans-serif';
 		c.fillText(type,0,0);
 	}
 	if (zoomed) popzoom();
@@ -724,9 +727,8 @@ function drawMap(s, options, callback) {
 	ca.height = ch;
 	
 	c.lineCap = 'square';
-	c.textAlign = 'center';
-	c.textBaseline = 'middle';
-	c.font = '15px sans-serif';
+	c.antialias = 'gray';
+	c.patternQuality = 'best';
 	c.save();
 	
 	// paint foreground (tiles)
