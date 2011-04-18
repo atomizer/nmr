@@ -1,7 +1,9 @@
-var Canvas = require('canvas')
 var fs = require('fs')
 var path = require('path')
+var Canvas = require('canvas')
 Image = Canvas.Image;
+
+var im = require('imagemagick')
 
 var font = require('./font');
 
@@ -666,7 +668,7 @@ function drawObjectTypes(objects, types) {
 
 var mods;
 
-function drawMap(s, options) {
+function drawMap(s, options, callback) {
 	var timer = new Date;
 	
 	if (!s) return;
@@ -796,33 +798,64 @@ function drawMap(s, options) {
 	
 	console.log('rendered in', new Date - timer);
 	
-	return ca;
+	callback(ca);
 }
 
+function canvasToFile(ca, where, callback) {
+	try {
+		var out = fs.createWriteStream(where);
+		var stream = ca.createPNGStream();
+		stream.on('data', function(chunk){
+			out.write(chunk);
+		});
+		stream.on('end', function(){
+			out.destroySoon();
+			out.on('close', function(){
+				console.log('saved', where);
+				callback();
+			});
+		});
+	}
+	catch (e) {
+		console.log('!! failed to save', where, 'with error:', e);
+		callback();
+	}
+}
+
+function genThumb(srcpath, dstpath, height, callback) {
+	im.resize({
+		srcPath: srcpath,
+		dstPath: dstpath,
+		height: height,
+		format: 'png'
+	}, function(e, stdout, stderr){
+		if (e) {
+			console.log('!! failed to resize', srcpath, 'error:', e);
+		} else {
+			console.log('resized', srcpath, 'to', dstpath);
+		}
+		callback();
+	});
+}
 
 exports.renderToFile = function(map_data, height, root, map_id, cb) {
 	var ops = {};
-	if (height > 600) {
+	var th = 0;
+	var filepath = path.join(root, map_id + '-');
+	var fullpath = filepath + '600.png';
+	
+	if (height > 600) { // hi-res
 		ops.tilesize = Math.round(height / 600 * 24);
-	}
-	
-	var file = path.join(root, map_id + '-' + height + '.png');
-	
-	var instr = drawMap(map_data, ops).createPNGStream();
-	var outstr = fs.createWriteStream(file);
-	
-	instr.on('data', function(chunk){
-		outstr.write(chunk);
-	});
-	instr.on('end', function(){
-		outstr.destroySoon();
-		outstr.on('close', function(){
-			console.log('saved', file);
-			if (typeof cb == 'function') cb();
-			
-			// here we should create thumbnail!!
-			
+		ops.printable = true;
+		drawMap(map_data, ops, function(res) {
+			canvasToFile(res, filepath + height + '.png', cb);
 		});
-	});
+	} else { // consider generating thumbnail
+		th = height < 600 ? height : 100;
+		drawMap(map_data, {}, function(res) {
+			canvasToFile(res, fullpath, genThumb(fullpath, filepath + th + '.png', th, cb));
+		});
+		}
+	}
 }
 
