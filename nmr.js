@@ -825,19 +825,21 @@ function canvasToFile(ca, where, callback) {
 }
 
 function genThumb(srcpath, dstpath, height, callback) {
-	im.resize({
-		srcPath: srcpath,
-		dstPath: dstpath,
-		height: height,
-		format: 'png'
-	}, function(e, stdout, stderr){
-		if (e) {
-			console.log('!! failed to resize', srcpath, 'error:', e);
-		} else {
-			console.log('resized', srcpath, 'to', dstpath);
-		}
-		callback();
-	});
+	return function() {
+		im.resize({
+			srcPath: srcpath,
+			dstPath: dstpath,
+			height: height,
+			format: 'png'
+		}, function(e, stdout, stderr){
+			if (e) {
+				console.log('!! failed to resize', srcpath, 'error:', e);
+			} else {
+				console.log('resized', srcpath, 'to', dstpath);
+			}
+			callback();
+		});
+	}
 }
 
 exports.renderToFile = function(map_data, height, root, map_id, cb) {
