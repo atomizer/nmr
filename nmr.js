@@ -829,6 +829,7 @@ function genThumb(srcpath, dstpath, height, callback) {
 		im.resize({
 			srcPath: srcpath,
 			dstPath: dstpath,
+			width: height*2,
 			height: height,
 			format: 'png'
 		}, function(e, stdout, stderr){
