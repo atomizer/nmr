@@ -855,7 +855,6 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 		drawMap(map_data, {}, function(res) {
 			canvasToFile(res, fullpath, genThumb(fullpath, filepath + th + '.png', th, cb));
 		});
-		}
 	}
 }
 
