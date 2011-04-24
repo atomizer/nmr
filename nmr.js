@@ -163,8 +163,14 @@ function clrTrans(color, tr) {
 function clr(type, fill, stroke) {
 	var t;
 	if (type != null && mods[type+3] && (t = mods[type+3]['_color'])) {
-		if (fill) fill = clrTrans(fill, t);
-		if (stroke) stroke = clrTrans(stroke, t);
+		if (fill) {
+			c.fillStyle = fill;
+			fill = clrTrans(c.fillStyle, t);
+		}
+		if (stroke) {
+			c.strokeStyle = stroke;
+			stroke = clrTrans(c.strokeStyle, t);
+		}
 	}
 	if (fill) c.fillStyle = fill;
 	if (stroke) c.strokeStyle = stroke;
