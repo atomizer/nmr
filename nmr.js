@@ -11,7 +11,7 @@ var font = require('./font');
 var _copy = 'nmr v1.3n';
 var COLS = 31, ROWS = 23;
 var tilesize = 24;
-var aa = 2; // antialiasing multiplier
+var aa = 1; // antialiasing multiplier
 var printable = 0; // always 1px lines or not
 
 var ca,c;
