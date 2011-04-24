@@ -2,6 +2,7 @@ var fs = require('fs')
 var path = require('path')
 var Canvas = require('canvas')
 Image = Canvas.Image;
+console.log('Using cairo', Canvas.cairoVersion);
 
 var im = require('imagemagick')
 
