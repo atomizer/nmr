@@ -69,7 +69,12 @@ function line(x1, y1, x2, y2) {
 function rect(x, y, w, h, centered, fill, stroke, noclip) {
 	if (centered) { x = x-w/2; y = y-h/2; }
 	if (fill || stroke) c.beginPath();
-	c.rect(x, y, w, h);
+	// c.rect(x, y, w, h);
+	c.moveTo(x, y);
+	c.lineTo(x + w, y);
+	c.lineTo(x + w, y + h);
+	c.lineTo(x + 0.001, y + h);
+	c.closePath();
 	if (fill) c.fill();
 	if (stroke) {
 		if (!noclip) {
