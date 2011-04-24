@@ -73,7 +73,7 @@ function rect(x, y, w, h, centered, fill, stroke, noclip) {
 	c.moveTo(x, y);
 	c.lineTo(x + w, y);
 	c.lineTo(x + w, y + h);
-	c.lineTo(x + 0.001, y + h);
+	c.lineTo(x + w * 0.01, y + h);
 	c.closePath();
 	if (fill) c.fill();
 	if (stroke) {
