@@ -10,9 +10,11 @@ var ROOT = '/tmp';
 var s = http.createServer();
 
 function tryToServe(req, res, second_try) {
+	var ip = req.connection.remoteAddress;
 	if (req.method != 'GET') {
 		res.writeHead(400, {'Content-Type': 'text/plain'});
 		res.end('Bad Request');
+		console.log(400, ip, req.method)
 	}
 	// rewriting
 	req.url = req.url.replace(/^\/(\d+)$/, '/$1-600');
@@ -26,12 +28,12 @@ function tryToServe(req, res, second_try) {
 		// console.log('req', req.url);
 	})
 	.after(function(statCode) {
-		console.log(statCode, req.url);
+		console.log(statCode, ip, req.url);
 	})
 	.error(function(statCode, msg) {
 		res.writeHead(statCode, {'Content-Type': 'text/plain'});
-		res.end("Something went very wrong. Error " + statCode);
-		console.log('!!', statCode, req.url, msg);
+		res.end("Something went very wrong.\nError " + statCode);
+		console.log('!!', statCode, ip, req.url, msg);
 	})
 	.otherwise(function(err) {
 		var m = req.url.match(/^\/(\d+)-(\d+)/);
@@ -40,7 +42,7 @@ function tryToServe(req, res, second_try) {
 			res.write('File not found. Error: ' + err);
 			res.write('\n\nThis is all your fault.');
 			res.end('\n'+second_try);
-			console.log(404, req.url, err);
+			console.log(404, ip, req.url);
 		} else {
 			var height = m[2], map_id = m[1];
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
