@@ -16,7 +16,6 @@ font.onload = function() {
 font.src = './font.png'
 
 exports.putStr = function(c, x, y, s) {
-	return;
 	c.save();
 	c.translate(x, y);
 	c.beginPath();
