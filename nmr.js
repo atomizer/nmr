@@ -174,38 +174,44 @@ function clr(type, fill, stroke) {
 
 var img_loading = 0;
 
-function prepImage(url, filter) {
-	var img, m;
+function prepImage(url, filter, callback) {
+	var m;
 	var url_re = /^(http:\/\/.+\.(?:gif|jpg|png))(?:\?(\d+))?$/;
 	if (!url || !(m = url.match(url_re))) return null;
 	url = m[1];
-	if (typeof filter == 'undefined') filter = +m[2] || 0;
-	console.log('image required:', url, filter ? (', filter #'+filter) : '');
+	if (typeof filter == 'undefined' || filter === null) filter = +m[2] || 0;
+	console.log('image:', url, filter ? (', filter #'+filter) : '');
 	
-	// here we should set img to an instance of Canvas
+	var img = new Canvas();
+	// request --> im.convert --> putImageData --> callback
 	
-	return null; // on fail
-	return {i: img, filter: filter, src: url};
+	var o = {data: img, filter: filter, src: url};
+	if (typeof callback == 'function') {
+		callback(o);
+	} else return o;
 }
 
-function prepIcon(s) {
+function prepIcon(s, cb) {
 	s = s.split('^');
-	if (s.length > 2) {
-		var img = prepImage(s[2]);
-		if (img) return { x: +s[0], y: +s[1], img: img };
-	}
-	return null;
+	if (s.length < 3) return null;
+	return { x: +s[0], y: +s[1], img: prepImage(s[2], null, cb) };
 }
+
+var filter_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
+	'ligther', 'darker', 'difference', 'add', 'substract',
+	'invert', 'alpha', 'erase', 'overlay', 'hard-light']
+	// TODO: implement add,substract,invert,alpha,erase
 
 function drawImage(i, x, y) {
 	if (!i) return;
 	x = x || 0; y = y || 0;
 	try {
-		// filter here!!!
-		c.drawImage(i.img, x, y);
+		c.globalCompositeOperation = filter_to_composite[i.filter];
+		c.drawImage(i.data, x, y);
+		c.globalCompositeOperation = 'over';
 	}
 	catch (e) {
-		console.log('error while drawing:', e.message);
+		console.log('error while drawing', i.src, ':', e.message);
 	}
 }
 
