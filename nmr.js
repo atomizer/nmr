@@ -187,7 +187,7 @@ function prepImage(url, filter, cb) {
 	
 	++loading_img;
 	
-	if (!cb) cb = function(){};
+	if (!cb) cb = function(){ console.log('---- generic callback -----') };
 	im.identify(url, function(e, features){
 		if (e) {
 			console.log('!! failed to identify', url, 'error:', e);
@@ -198,7 +198,8 @@ function prepImage(url, filter, cb) {
 		var img = new Canvas();
 		img.width = features.width;
 		img.height = features.height;
-		im.convert([url, 'rgba:-', '-depth 8'], function(e, stdout, stderr){
+		im.convert([url, 'rgba:-', '-depth 8', '-size ' + img.width + 'x' + img.height],
+		function(e, stdout, stderr){
 			if (e) {
 				console.log('!! failed to convert', url, 'error:', e);
 			} else {
