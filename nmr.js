@@ -243,9 +243,9 @@ function addTile(type) {
 	if (T == 8) c.rotate(-r * Math.PI/2); else c.scale(sx[r], sy[r]);
 	
 	if (T == 2 || T == 3) {  // round things
-		c.moveTo(1,-1);
-		if (T == 2) c.arc(-1, 1, 2,-Math.PI/2, 0, false);
-		if (T == 3) c.arc( 1,-1, 2, Math.PI/2, Math.PI, false);
+		c.moveTo(-1, 1);
+		if (T == 2) c.arc( 1,-1, 2, Math.PI/2, Math.PI, false);
+		if (T == 3) c.arc(-1, 1, 2,-Math.PI/2, 0, false);
 		c.closePath();
 	} else {  // everything else
 		poly(TILEPOLY[T]);
