@@ -632,7 +632,7 @@ function drawObject(str) {
 			clr(null, '#acacb5', '#5f5f6b');
 			rect(0, 0, sw, sw, 1, 1, 1);
 			clr(null, '#666', '#000');
-			rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && tilesize==24) ? 1: 0);
+			rect(0, -sw/8, sw/2, sw/4, 1, 1, (+params[3] && tilesize==24) ? 1: 0);
 		}
 	break;
 	case 10: // rocket launcher
