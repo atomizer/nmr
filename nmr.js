@@ -17,7 +17,12 @@ var printable = 0; // always 1px lines or not
 var ca,c;
 
 var cz; // current zoom (for size mods); x_real = x / cz
-var zooms;
+var zooms = [];
+
+var mods = {};
+
+var loading_img = 0; // how many images are preloading
+var images = {};
 
 
 /****************
@@ -172,29 +177,40 @@ function clr(type, fill, stroke) {
 	if (stroke) c.strokeStyle = stroke;
 }
 
-var img_loading = 0;
-
-function prepImage(url, filter, callback) {
+function prepImage(url, filter, cb) {
 	var m;
 	var url_re = /^(http:\/\/.+\.(?:gif|jpg|png))(?:\?(\d+))?$/;
-	if (!url || !(m = url.match(url_re))) return null;
+	if (!url || !(m = url.match(url_re)) || images[url]) return null;
 	url = m[1];
 	if (typeof filter == 'undefined' || filter === null) filter = +m[2] || 0;
 	console.log('image:', url, filter ? (', filter #'+filter) : '');
 	
-	var img = new Canvas();
-	// request --> im.convert --> putImageData --> callback
+	++loading_img;
 	
-	var o = {data: img, filter: filter, src: url};
-	if (typeof callback == 'function') {
-		callback(o);
-	} else return o;
-}
-
-function prepIcon(s, cb) {
-	s = s.split('^');
-	if (s.length < 3) return null;
-	return { x: +s[0], y: +s[1], img: prepImage(s[2], null, cb) };
+	if (!cb) cb = function(){};
+	im.identify(url, function(e, features){
+		if (e) {
+			console.log('!! failed to identify', url, 'error:', e);
+			if (--loading_img == 0) cb();
+			return;
+		}
+		console.log(url, '::', features);
+		var img = new Canvas();
+		img.width = features.width;
+		img.height = features.height;
+		im.convert([url, 'rgba:-', '-depth 8'], function(e, stdout, stderr){
+			if (e) {
+				console.log('!! failed to convert', url, 'error:', e);
+			} else {
+				var ctx = img.getContext('2d');
+				var idata = ctx.createImageData(img.width, img.height);
+				idata.data = new Buffer(stdout);
+				ctx.putImageData(idata, 0, 0);
+				images[url] = { data: img, filter: filter }
+			}
+			if (--loading_img == 0) cb();
+		});
+	});
 }
 
 var filter_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
@@ -202,7 +218,8 @@ var filter_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
 	'invert', 'alpha', 'erase', 'overlay', 'hard-light']
 	// TODO: implement add,substract,invert,alpha,erase
 
-function drawImage(i, x, y) {
+function drawImage(isrc, x, y) {
+	var i = images[isrc];
 	if (!i) return;
 	x = x || 0; y = y || 0;
 	try {
@@ -682,8 +699,6 @@ function drawObjectTypes(objects, types) {
 	return r;
 }
 
-var mods;
-
 function drawMap(s, options, callback) {
 	var timer = new Date;
 	
@@ -699,10 +714,15 @@ function drawMap(s, options, callback) {
 	s = s.split('|');
 	if (s.length < 2 || !s[0].length) return;
 	
-	var bg = prepImage(s[2], 0);
-	var fg = prepImage(s[3]);
-	
 	mods = {};
+	images = {};
+	var iq = [];
+	
+	var bg = s[2];
+	var fg = s[3];
+	iq.push([s[2], 0]);
+	iq.push([s[3], null]);
+	
 	var ms = [];
 	if (s[5]) {
 		ms = ms.concat(s[5].split(';'));
@@ -715,10 +735,19 @@ function drawMap(s, options, callback) {
 		if (mod.length > 2 && !isNaN(+mod[0])) {
 			var id = +mod[0];
 			mods[id] = mods[id] || {};
-			if (mod[1].match(/^_icon2?$/)) mod[2] = prepIcon(mod[2]);
+			if (mod[1].match(/^_icon2?$/)) {
+				var mi = mod[2];
+				mi = mi.split('^');
+				if (mi.length == 3) {
+					iq.push([mi[2], null]);
+					mod[2] = { x: +mi[0], y: +mi[1], img: mi[2] };
+				} else mod[2] = null;
+			}
 			mods[id][mod[1]] = mod[2];
 		}
 	}
+	
+	for (var i = 0; i < iq.length; i++) prepImage(iq[i][0], iq[i][1]);
 	
 	// SPLIT AND WAIT FOR IMAGES TO LOAD HERE
 	
