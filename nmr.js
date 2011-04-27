@@ -8,7 +8,7 @@ var im = require('imagemagick')
 
 var font = require('./font');
 
-var _copy = 'nmr v1.3n';
+var _copy = 'nmr v014n';
 var COLS = 31, ROWS = 23;
 var tilesize = 24;
 var aa = 1; // antialiasing multiplier
@@ -220,15 +220,15 @@ end of helpers
 ****************/
 
 var TILEPOLY = [[],
-	[-1,-1, 1, 1, 1,-1],
+	[-1,-1, 1, 1,-1, 1],
 	[], [],
-	[-1,-1, 1,-1, 1, 1,-1, 0],
-	[-1,-1, 1,-1, 1, 0],
-	[-1,-1, 1,-1, 1, 1, 0, 1],
-	[ 0,-1, 1,-1, 1, 1],
-	[-1,-1, 1,-1, 1, 0,-1, 0]];
+	[ 1, 1,-1, 0,-1, 1],
+	[-1,-1, 1, 0, 1, 1,-1, 1],
+	[-1,-1, 0, 1,-1, 1],
+	[-1,-1, 0,-1, 1, 1,-1, 1],
+	[-1, 1, 1, 1, 1, 0,-1, 0]];
 
-function addTile(c, type) {
+function addTile(type) {
 	var sx = [1,-1,-1, 1], sy = [1, 1,-1,-1];
 	// clamp type to [0..33], like n does.
 	// though tiles > 33 behave oddly, they show up as 33, and we should obey.
@@ -244,8 +244,8 @@ function addTile(c, type) {
 	
 	if (T == 2 || T == 3) {  // round things
 		c.moveTo(1,-1);
-		if (T == 2) c.arc( 1,-1, 2, Math.PI/2, Math.PI, false);
-		if (T == 3) c.arc(-1, 1, 2,-Math.PI/2, 0, false);
+		if (T == 2) c.arc(-1, 1, 2,-Math.PI/2, 0, false);
+		if (T == 3) c.arc( 1,-1, 2, Math.PI/2, Math.PI, false);
 		c.closePath();
 	} else {  // everything else
 		poly(TILEPOLY[T]);
@@ -293,7 +293,7 @@ function drawObject(str) {
 			var speed = +cm[3];
 			var p = cm[0].split(':')[0].split('.');
 			p[0] = +p[0]; p[1] = +p[1];
-			if (!isNaN(p[0]+p[1])) {
+			if (!isNaN(p[0] + p[1] + speed)) {
 				var d = Math.sqrt((p[0]-x)*(p[0]-x) + (p[1]-y)*(p[1]-y));
 				if (d) {
 					x += (p[0]-x) * speed / d;
@@ -373,7 +373,7 @@ function drawObject(str) {
 	case 3: // gauss
 		turret(t, 5.75);
 		clr(t, '', '#7f335a');
-		c.lineWidth *= 1.3; // trying to compensate lightness
+		if (!printable) c.lineWidth *= 1.3; // trying to compensate lightness
 		circle(0, 0, 3.05, 0, 1);
 	break;
 	case 4: // floorguard
@@ -660,7 +660,7 @@ function drawObject(str) {
 	break;
 	default: // unhandled object type
 		c.fillStyle = 'rgba(255,255,255,0.5)';
-		rect(c,0,0,18,18,1,1);
+		rect(0,0,18,18,1,1);
 		c.fillStyle = '#000';
 		c.textAlign = 'center';
 		c.textBaseline = 'middle';
@@ -698,9 +698,6 @@ function drawMap(s, options, callback) {
 	}
 	s = s.split('|');
 	if (s.length < 2 || !s[0].length) return;
-	
-	var t = s[0];  // tiles
-	var o = s[1].split('!');  // objects
 	
 	var bg = prepImage(s[2], 0);
 	var fg = prepImage(s[3]);
@@ -744,28 +741,14 @@ function drawMap(s, options, callback) {
 	c.patternQuality = 'best';
 	c.save();
 	
-	// paint foreground (tiles)
-	clr(null, '#797988');
-	c.fillRect(0, 0, cw, ch);
-	
 	cz = 1;
 	zooms = [];
 	
 	zoom(aa);
 	c.lineWidth = 1;
 	
-	// clip tiles
-	c.save();
-	c.beginPath();
-	c.scale(tilesize/2, tilesize/2);
-	for (var i = 0; i < ROWS * COLS; i++) {
-		c.save();
-		c.translate(Math.floor(i / ROWS) * 2 + 3, (i % ROWS) * 2 + 3);
-		addTile(c, t.charCodeAt(i) - 48);
-		c.restore();
-	}
-	c.restore();
-	c.clip();
+	var t = s[0];  // tiles
+	var o = s[1].split('!');  // objects
 	
 	// paint background (walls)
 	clr(null, '#ccc');
@@ -782,6 +765,25 @@ function drawMap(s, options, callback) {
 	popzoom();
 	c.restore();
 	
+	// paint foreground (tiles)
+	c.save();
+	c.beginPath();
+	c.scale(tilesize/2, tilesize/2);
+	for (var i = -1; i < ROWS + 1; i++) {
+		for (var j = -1; j < COLS + 1; j++) {
+			c.save();
+			c.translate(j * 2 + 3, i * 2 + 3);
+			if (i==-1 || j==-1 || i==ROWS || j==COLS) {
+				rect(-1, -1, 2, 2);
+			} else {
+				addTile(t.charCodeAt(i + j * ROWS) - 48);
+			}
+			c.restore();
+		}
+	}
+	c.restore();
+	clr(null, '#797988');
+	c.fill();
 	drawImage(fg);
 	
 	// back to normal
