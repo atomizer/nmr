@@ -234,9 +234,9 @@ function addTile(type) {
 	// though tiles > 33 behave oddly, they show up as 33, and we should obey.
 	type = (type < 0 ? 0 : (type > 33 ? 33 : type));
 	if (type == 0) {  // empty
-		c.rect(-1,-1, 2, 2);
 		return true;
 	} else if (type == 1) {  // full
+		c.rect(-1,-1, 2, 2);
 		return true;
 	} else type += 2;
 	var T = Math.floor(type / 4), r = type % 4;
