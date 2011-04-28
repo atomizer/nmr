@@ -198,7 +198,7 @@ function prepImage(url, filter, cb) {
 		var img = new Canvas();
 		img.width = features.width;
 		img.height = features.height;
-		im.convert([url, '-limit area 1mb', 'rgba:-'],
+		im.convert([url, '-limit', 'area', '1mb', 'rgba:-'],
 		function(e, stdout, stderr){
 			if (e) {
 				console.log('!! convert', url, 'error:', e);
