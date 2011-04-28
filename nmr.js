@@ -190,7 +190,7 @@ function prepImage(url, filter, cb) {
 	if (!cb) cb = function(){ console.log('---- generic callback -----') };
 	im.identify(url, function(e, features){
 		if (e) {
-			console.log('!! failed to identify', url, 'error:', e);
+			console.log('!!', url, 'error:', e.message);
 			if (--loading_img == 0) cb();
 			return;
 		}
@@ -198,10 +198,10 @@ function prepImage(url, filter, cb) {
 		var img = new Canvas();
 		img.width = features.width;
 		img.height = features.height;
-		im.convert([url, 'rgba:-', '-depth 8', '-size ' + img.width + 'x' + img.height],
+		im.convert(['-size ' + img.width + 'x' + img.height, '-depth 8', url, 'rgba:-'],
 		function(e, stdout, stderr){
 			if (e) {
-				console.log('!! failed to convert', url, 'error:', e);
+				console.log('!!', url, 'error:', e.message);
 			} else {
 				var ctx = img.getContext('2d');
 				var idata = ctx.createImageData(img.width, img.height);
