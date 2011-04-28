@@ -198,7 +198,7 @@ function prepImage(url, filter, cb) {
 		var img = new Canvas();
 		img.width = features.width;
 		img.height = features.height;
-		im.convert(['-size ' + img.width + 'x' + img.height, '-depth 8', url, 'rgba:-'],
+		im.convert([url, 'rgba:-'],
 		function(e, stdout, stderr){
 			if (e) {
 				console.log('!!', url, 'error:', e.message);
