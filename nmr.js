@@ -190,7 +190,7 @@ function prepImage(url, filter, cb) {
 	if (!cb) cb = function(){ console.log('---- generic callback -----') };
 	im.identify(url, function(e, features){
 		if (e) {
-			console.log('!!', url, 'error:', e.message);
+			console.log('!! identify', url, 'error:', e);
 			if (--loading_img == 0) cb();
 			return;
 		}
@@ -201,7 +201,7 @@ function prepImage(url, filter, cb) {
 		im.convert([url, 'rgba:-'],
 		function(e, stdout, stderr){
 			if (e) {
-				console.log('!!', url, 'error:', e.message);
+				console.log('!! convert', url, 'error:', e);
 			} else {
 				var ctx = img.getContext('2d');
 				var idata = ctx.createImageData(img.width, img.height);
