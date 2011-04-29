@@ -897,7 +897,7 @@ NMR.prototype._render = function() {
 		this.c.putImageData(iData, 0, 0);
 	}
 	
-	console.log('rendered in', new Date - timer);
+	console.log('rendered in', new Date - this.timer);
 	cb(this.ca);
 }
 
