@@ -898,7 +898,7 @@ NMR.prototype._render = function() {
 	}
 	
 	console.log('rendered in', new Date - this.timer);
-	cb(this.ca);
+	this.cb(this.ca);
 }
 
 function canvasToFile(ca, where, callback) {
