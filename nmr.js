@@ -845,7 +845,7 @@ NMR.prototype._render = function() {
 		
 	// paint objects
 	this.c.save();
-	var total = 0;
+	var totalo = 0;
 	this.zoom(this.tilesize / 24); // scaling object coordinates for custom tile sizes
 	totalo += this.drawObjectTypes(o, [2,3,7,9,10,11]); // background objects - always behind
 	totalo += this.drawObjectTypes(o, [0,1,4,6,8,12]); // normal objects
