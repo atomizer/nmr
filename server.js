@@ -28,7 +28,7 @@ function tryToServe(req, res, second_try) {
 		// console.log('req', req.url);
 	})
 	.after(function(statCode) {
-		console.log(statCode, ip, req.url);
+		console.log(statCode + '', ip, req.url);
 	})
 	.error(function(statCode, msg) {
 		res.writeHead(statCode, {'Content-Type': 'text/plain'});
@@ -42,7 +42,7 @@ function tryToServe(req, res, second_try) {
 			res.write('File not found. Error: ' + err);
 			res.write('\n\nThis is all your fault.');
 			res.end('\n'+second_try);
-			console.log(404, ip, req.url);
+			console.log('404', ip, req.url);
 		} else {
 			var height = m[2], map_id = m[1];
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
