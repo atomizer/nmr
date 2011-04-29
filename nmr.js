@@ -270,10 +270,10 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 				that.images[urlf] = { data: img, blend: blend }
 				if (--that.pending == 0) cb();
 			}
-			img.onerror = function (e) {
-				console.log('!! image.onerror', filename, e.message)
-				if (--that.pending == 0) cb();
-			}
+			// img.onerror = function (e) {
+				// console.log('!! image.onerror', filename, e.message)
+				// if (--that.pending == 0) cb();
+			// }
 			img.src = filename;
 		});
 	});
@@ -292,13 +292,13 @@ NMR.prototype.drawImage = function(isrc, x, y) {
 		switch (i.blend) {
 		case 10: // invert
 			var ca = new Canvas(i.data.width, i.data.height);
-			var c = c.getContext('2d');
-			c.drawImage(i.data, 0, 0);
-			c.globalCompositeOperation = 'destination-in';
-			c.fillStyle = '#fff';
-			c.fillRect(0, 0, ca.width, ca.height);
+			var ctx = ca.getContext('2d');
+			ctx.drawImage(i.data, 0, 0);
+			ctx.globalCompositeOperation = 'destination-in';
+			ctx.fillStyle = '#fff';
+			ctx.fillRect(0, 0, ca.width, ca.height);
 			this.c.globalCompositeOperation = 'difference';
-			this.c.drawImage(c, x, y);
+			this.c.drawImage(ca, x, y);
 		break;
 		default:
 			this.c.globalCompositeOperation = blend_to_composite[i.blend];
