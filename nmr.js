@@ -840,8 +840,8 @@ NMR.prototype._render = function() {
 	this.c.fillRect(0, 0, this.ca.width, this.ca.height);
 	
 	this.c.save();
-	this.zoom(aa);
-	this.drawImage(bg);
+	this.zoom(this.aa);
+	this.drawImage(this.bg);
 		
 	// paint objects
 	this.c.save();
@@ -856,7 +856,7 @@ NMR.prototype._render = function() {
 	// paint foreground (tiles)
 	this.c.save();
 	this.c.beginPath();
-	this.c.scale(tilesize/2, tilesize/2);
+	this.c.scale(this.tilesize/2, this.tilesize/2);
 	for (var i = -1; i <= ROWS; i++) {
 		for (var j = -1; j <= COLS; j++) {
 			if (i==-1 || j==-1 || i==ROWS || j==COLS)
@@ -868,7 +868,7 @@ NMR.prototype._render = function() {
 	this.c.restore();
 	this.clr(null, '#797988');
 	this.c.fill();
-	this.drawImage(fg);
+	this.drawImage(this.fg);
 	
 	// back to normal
 	this.popzoom();
