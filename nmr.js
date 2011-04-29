@@ -285,7 +285,7 @@ var blend_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
 
 NMR.prototype.drawImage = function(isrc, x, y) {
 	var i = this.images[isrc];
-	if (!i.data) return;
+	if (!i || !i.data) return;
 	x = x || 0; y = y || 0;
 	try {
 		switch (i.blend) {
