@@ -246,10 +246,11 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
+	var that = this;
 	im.identify(url, function(e, features){
 		if (e) {
 			console.log('!! identify', url, 'error:', e.message);
-			if (--this.pending == 0) cb();
+			if (--that.pending == 0) cb();
 			return;
 		}
 		console.log('#', url, '::', features);
@@ -259,19 +260,19 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 		function(e, stdout, stderr){
 			if (e) {
 				console.log('!! convert', url, 'error:', e.message);
-				if (--this.pending == 0) cb();
+				if (--that.pending == 0) cb();
 				return;
 			}
 			console.log('#', url, '=>', filename);
 			var img = new Image();
 			img.onload = function () {
 				// success
-				this.images[urlf] = { data: img, blend: blend }
-				if (--this.pending == 0) cb();
+				that.images[urlf] = { data: img, blend: blend }
+				if (--that.pending == 0) cb();
 			}
 			img.onerror = function (e) {
-				console.log('!! image.onerror', url, e.message)
-				if (--this.pending == 0) cb();
+				console.log('!! image.onerror', filename, e.message)
+				if (--that.pending == 0) cb();
 			}
 			img.src = filename;
 		});
@@ -877,7 +878,7 @@ NMR.prototype._render = function() {
 	// put up some fancy text
 	this.zoom(this.aa * this.tilesize/24);
 	this.c.fillStyle = '#000';
-	if (typeof title != 'undefined') {
+	if (typeof this.title != 'undefined') {
 		font.putStr(this.c, 410, 586, (this.title ? this.title : '') +
 			'  ( by ' + this.author + ' )' +
 			((this.type && this.type != 'none') ? '  ::  ' + this.type : '') +
@@ -886,7 +887,7 @@ NMR.prototype._render = function() {
 	// info
 	this.c.fillStyle = 'rgba(0,0,0,0.3)';
 	font.putStr(this.c, 2, 592, 'nmr v' + VERSION + '   ' +
-		totalo + 'objects in ' + (new Date - this.timer) + 'ms  at ' + new Date);
+		totalo + 'objects in ' + (new Date - this.timer) + 'ms   ' + new Date);
 	this.popzoom();
 	
 	// apply antialiasing
