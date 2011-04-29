@@ -121,7 +121,7 @@ NMR.prototype.zoom = function(factor) {
 	this.c.save();
 	this.c.scale(factor, factor);
 	this.cz *= factor;
-	this.c.lineWidth = printable ? 1 : aa/cz;
+	this.c.lineWidth = this.printable ? 1 : this.aa/this.cz;
 }
 
 NMR.prototype.popzoom = function() {
