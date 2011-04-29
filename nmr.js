@@ -621,7 +621,7 @@ NMR.prototype.drawObject = function(str) {
 		if (isNaN(r) || r > 2 || r < 0) r = -1;
 		this.c.rotate(r * PI * 0.15);
 		
-		clr(dt-3, eyeF);
+		this.clr(dt-3, eyeF);
 		if (eye_turret) {
 			this.rect(0.95, 0, 8, 3.87, 1, 1);
 		} else {
