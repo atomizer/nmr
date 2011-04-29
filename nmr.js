@@ -686,7 +686,7 @@ NMR.prototype.drawObject = function(str) {
 		
 		p = [10.08, 0, 1.92, 24, 10, 0, 4, 10.44];
 		// dirty hacks for thin locked doors
-		if (+params[6] && r>1 && tilesize==24) {
+		if (+params[6] && r>1 && this.tilesize==24) {
 			p[2] = 1; dx-=(r==2?1:0); dy-=(r==3?1:0);
 		}
 		p = rotate_pts(p, r);
@@ -708,7 +708,7 @@ NMR.prototype.drawObject = function(str) {
 			this.clr(null, '#acacb5', '#5f5f6b');
 			this.rect(0, 0, sw, sw, 1, 1, 1);
 			this.clr(null, '#666', '#000');
-			this.rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && tilesize==24) ? 1: 0);
+			this.rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && this.tilesize==24) ? 1: 0);
 		}
 	break;
 	case 10: // rocket launcher
