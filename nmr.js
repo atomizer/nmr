@@ -777,6 +777,7 @@ NMR.prototype.drawObjectTypes = function(objects, types) {
 
 NMR.prototype.render = function(s, cb) {
 	this.timer = new Date;
+	this.cb = cb;
 	
 	if (!s) return;
 	if (s[0] == '$') {
@@ -790,6 +791,7 @@ NMR.prototype.render = function(s, cb) {
 	}
 	s = s.split('|');
 	if (s.length < 2 || !s[0].length) return;
+	this.s = s;
 	
 	var iq = [];
 	
@@ -824,9 +826,9 @@ NMR.prototype.render = function(s, cb) {
 	
 	for (var i = 0; i < iq.length; i++)
 		this.prepImage(iq[i][0], iq[i][1], this._render);
-	
-	this.s = s;
-	this.cb = cb;
+	if (this.pending == 0) { // there were no valid images in queue
+		this._render();
+	}
 }
 
 NMR.prototype._render = function() {
