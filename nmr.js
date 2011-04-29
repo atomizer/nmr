@@ -315,7 +315,6 @@ NMR.prototype.drawImage = function(isrc, x, y) {
 
 NMR.prototype.addTile = function(x, y, type) {
 	var sx = [1,-1,-1, 1], sy = [1, 1,-1,-1];
-	this.c.save();
 	this.c.translate(x * 2 + 3, y * 2 + 3);
 	// clamp type to [0..33], like n does.
 	// though tiles > 33 behave oddly, they show up as 33, and we should obey.
@@ -337,7 +336,6 @@ NMR.prototype.addTile = function(x, y, type) {
 	} else {  // everything else
 		this.poly(TILEPOLY[T]);
 	}
-	this.c.restore();
 }
 
 NMR.prototype.drawObject = function(str) {
@@ -859,10 +857,12 @@ NMR.prototype._render = function() {
 	this.c.scale(this.tilesize/2, this.tilesize/2);
 	for (var i = -1; i <= ROWS; i++) {
 		for (var j = -1; j <= COLS; j++) {
+			this.c.save();
 			if (i==-1 || j==-1 || i==ROWS || j==COLS)
 				this.addTile(i, j, 1);
 			else
 				this.addTile(i, j, t.charCodeAt(i + j * ROWS) - 48);
+			this.c.restore();
 		}
 	}
 	this.c.restore();
@@ -958,13 +958,13 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 			r = new NMR();
 			r.render(map_data, function(res) {
 				canvasToFile(res, fullpath, function() {
-					genThumb(fullpath, filepath + height + '.png', height, cb());
+					genThumb(fullpath, filepath + height + '.png', height, cb);
 				});
 			});
 			return;
 		}
 		// if full is already there
-		genThumb(fullpath, filepath + height + '.png', height, cb());
+		genThumb(fullpath, filepath + height + '.png', height, cb);
 	}
 }
 
