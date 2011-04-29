@@ -810,7 +810,7 @@ NMR.prototype.render = function(s, cb) {
 		var mod = ms[i].split(',');
 		if (mod.length > 2 && !isNaN(+mod[0])) {
 			var id = +mod[0];
-			this.mods[id] = mods[id] || {};
+			this.mods[id] = this.mods[id] || {};
 			if (mod[1].match(/^_icon2?$/)) {
 				var mi = mod[2];
 				mi = mi.split('^');
