@@ -103,9 +103,9 @@ var NMR = exports.NMR = function(options) {
 	this.pending = 0; // how many images are not loaded yet
 	this.images = {};
 	
-	var rw = (COLS + 2) * this.tilesize;  // real dimensions
-	var rh = (ROWS + 2) * this.tilesize;
-	this.ca = new Canvas(rw * aa, rh * aa);
+	this.rw = (COLS + 2) * this.tilesize;  // real dimensions
+	this.rh = (ROWS + 2) * this.tilesize;
+	this.ca = new Canvas(this.rw * this.aa, this.rh * this.aa);
 	var c = this.ca.getContext('2d');
 	c.lineCap = 'square';
 	c.antialias = 'gray';
@@ -889,9 +889,9 @@ NMR.prototype._render = function() {
 	
 	// apply antialiasing
 	if (this.aa > 1) {
-		this.c.drawImage(this.ca, 0, 0, rw, rh);
-		var iData = this.c.getImageData(0, 0, rw, rh);
-		this.ca.width = rw; this.ca.height = rh;
+		this.c.drawImage(this.ca, 0, 0, this.rw, this.rh);
+		var iData = this.c.getImageData(0, 0, this.rw, this.rh);
+		this.ca.width = this.rw; this.ca.height = this.rh;
 		this.c.putImageData(iData, 0, 0);
 	}
 	
