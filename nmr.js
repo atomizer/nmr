@@ -209,7 +209,7 @@ NMR.prototype.regularpoly = function(r, n, fill, stroke) {
 	var R = r / Math.cos(a/2);
 	this.c.save();
 	this.c.rotate(-a/2);
-	c.moveTo(R, 0);
+	this.c.moveTo(R, 0);
 	for (var i = 0; i < n - 1; i++) {
 		this.c.rotate(a);
 		this.c.lineTo(R, 0);
@@ -859,9 +859,9 @@ NMR.prototype._render = function() {
 		for (var j = -1; j <= COLS; j++) {
 			this.c.save();
 			if (i==-1 || j==-1 || i==ROWS || j==COLS)
-				this.addTile(i, j, 1);
+				this.addTile(j, i, 1);
 			else
-				this.addTile(i, j, t.charCodeAt(i + j * ROWS) - 48);
+				this.addTile(j, i, t.charCodeAt(i + j * ROWS) - 48);
 			this.c.restore();
 		}
 	}
