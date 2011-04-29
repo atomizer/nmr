@@ -237,11 +237,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	var m, url;
 	var url_re = /^(http:\/\/.+\.(?:gif|jpg|png))(?:\?(\d+))?$/;
 	
-	if (!urlf || this.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) {
-		cb();
-		return;
-	}
-	
+	if (!urlf || this.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) return null;
 	this.images[urlf] = {};
 	blend = blend || +m[2] || 0;
 	
