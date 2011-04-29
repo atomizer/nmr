@@ -794,9 +794,9 @@ NMR.prototype.render = function(s, cb) {
 	var iq = [];
 	
 	this.bg = s[2];
-	iq.push([s[2], 0]);
 	this.fg = s[3];
-	iq.push([s[3]]);
+	iq.push([bg, 0]);
+	iq.push([fg]);
 	
 	var ms = [];
 	if (s[5]) { // object mod
@@ -823,7 +823,7 @@ NMR.prototype.render = function(s, cb) {
 	}
 	
 	for (var i = 0; i < iq.length; i++)
-		prepImage(iq[i][0], iq[i][1], this._render);
+		this.prepImage(iq[i][0], iq[i][1], this._render);
 	
 	this.s = s;
 	this.cb = cb;
