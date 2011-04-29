@@ -1,242 +1,21 @@
-var fs = require('fs')
-var path = require('path')
-var Canvas = require('canvas')
-Image = Canvas.Image;
-console.log('Using cairo', Canvas.cairoVersion);
+var VERSION = '016n';
 
-var im = require('imagemagick')
+var fs = require('fs'),
+	path = require('path'),
+	im = require('imagemagick'),
+	Canvas = require('canvas'),
+	Image = Canvas.Image;
+
+console.log('Using cairo', Canvas.cairoVersion);
 
 var font = require('./font');
 
-var _copy = 'nmr v014n';
+var PI = Math.PI;
 var COLS = 31, ROWS = 23;
-var tilesize = 24;
-var aa = 2; // antialiasing multiplier
-var printable = 0; // always 1px lines or not
-
-var ca,c;
-
-var cz; // current zoom (for size mods); x_real = x / cz
-var zooms = [];
-
-var mods = {};
-
-var loading_img = 0; // how many images are preloading
-var images = {};
-
-
-/****************
-helper functions
-****************/
-
-function zoom(factor) {
-	zooms.push(cz);
-	c.save();
-	c.scale(factor, factor);
-	cz *= factor;
-	c.lineWidth = aa/cz;
-}
-
-function popzoom() {
-	if (zooms.length) {
-		c.restore();
-		cz = zooms.pop();
-	}
-}
-
-// 4-way rotation
-function rotate_pts(a, dir) {
-	var ra = [];
-	dir = (dir > 3 ? dir - 4 : (dir < 0 ? dir + 4 : dir));
-	for (var i = 0, l = a.length; i < l; i += 2) {
-		ra[i]   = dir % 2 ? a[i+1] : a[i];
-		ra[i+1] = dir % 2 ? a[i] : a[i+1];
-		if (dir > 1) {
-			ra[i] = -ra[i]; ra[i+1] = -ra[i+1];
-		}
-	}
-	return ra;
-}
-// rounding to the pixel's center, Flash way
-function rnd(x, cross) {
-	var mul = cz/aa;
-	return (Math.floor(x * mul) + (cross ? 0 : 0.5)) / mul;
-}
-// (hopefully) crisp 1px line
-function line(x1, y1, x2, y2) {
-	if (!isNaN(x2 + y2)) {
-		c.moveTo(rnd(x1), rnd(y1));
-		c.lineTo(rnd(x2), rnd(y2));
-	} else {
-		c.lineTo(rnd(x1), rnd(y1));
-	}
-}
-
-function rect(x, y, w, h, centered, fill, stroke, noclip) {
-	if (centered) { x = x-w/2; y = y-h/2; }
-	if (fill || stroke) c.beginPath();
-	c.rect(x, y, w, h);
-	if (fill) c.fill();
-	if (stroke) {
-		if (!noclip) {
-			c.beginPath();
-			line(x, y, x+w, y);
-			line(x+w, y+h);
-			line(x, y+h);
-			c.closePath();
-		}
-		c.stroke();
-	}
-}
-
-function circle(x, y, r, fill, stroke) {
-	if (fill || stroke) c.beginPath();
-	c.arc(x, y, r, 0, Math.PI*2, false);
-	if (fill) c.fill();
-	if (stroke) c.stroke();
-}
-
-function poly(a, fill, stroke, noclose) {
-	if (fill || stroke) c.beginPath();
-	c.moveTo(a[0], a[1]);
-	for (var i = 2; i < a.length; i += 2) c.lineTo(a[i], a[i+1]);
-	if (!noclose) c.closePath();
-	if (fill) c.fill();
-	if (stroke) c.stroke();
-}
-// right polygon, used only for drones - do we need it?
-function polyg(x, y, r, n, fill, stroke) {
-	if (fill || stroke) c.beginPath();
-	var a = Math.PI * 2 / n;
-	var R = r / Math.cos(a/2);
-	c.save();
-	c.translate(x, y);
-	c.rotate(-a/2);
-	c.moveTo(R, 0);
-	for (var i=0; i<n-1; i++) {
-		c.rotate(a);
-		c.lineTo(R, 0);
-	}
-	c.restore();
-	c.closePath();
-	if (fill) c.fill();
-	if (stroke) c.stroke();
-}
-// draws 4 arcs, used for gauss & rocket
-function turret(t, r) {
-	clr(t, '', '#000');
-	for (var i=0; i<6; i+=Math.PI/2) {
-		c.beginPath();
-		c.arc(0, 0, r, i + 0.2, Math.PI/2 + i - 0.2, false);
-		c.stroke();
-	}
-}
-// colorTransform, canvas way
-function clrTrans(color, tr) {
-	tr = tr.split('.');
-	if (tr.length < 8) return color;
-	for (var i = 0; i < 8; i++) {
-		tr[i] = +tr[i];
-		if (isNaN(tr[i])) return color;
-	}
-	var c = [];
-	// step 1: deserialization
-	if (color[0] == '#') { // "#aabbcc"
-		c[3] = 1;
-		for (var i = 0; i < 3; i++) c[i] = +('0x' + color.substr(i*2+1, 2));
-	}
-	else { // "rgba(r,g,b,a)"
-		c = color.match(/\((.+)\)/)[1].split(',');
-		for (var i = 0; i < 4; i++) c[i] = +c[i];
-	}
-	// step 2: transformation
-	for (var i = 0; i < 3; i++) {
-		c[i] = c[i] * (+tr[i*2] / 100) + (+tr[i*2+1]);
-	}
-	c[3] = c[3] * (+tr[6] / 100) + (+tr[7] / 255);
-	// step 3: serialization
-	var s = 'rgba(';
-	for (var i=0; i<3; i++) s += Math.round(c[i]) + ', ';
-	s += c[3] + ')';
-	return s;
-}
-// set colors
-function clr(type, fill, stroke) {
-	var t;
-	if (type != null && mods[type+3] && (t = mods[type+3]['_color'])) {
-		if (fill) {
-			c.fillStyle = fill;
-			fill = clrTrans(c.fillStyle, t);
-		}
-		if (stroke) {
-			c.strokeStyle = stroke;
-			stroke = clrTrans(c.strokeStyle, t);
-		}
-	}
-	if (fill) c.fillStyle = fill;
-	if (stroke) c.strokeStyle = stroke;
-}
-
-function prepImage(url, filter, cb) {
-	var m;
-	var url_re = /^(http:\/\/.+\.(?:gif|jpg|png))(?:\?(\d+))?$/;
-	if (!url || !(m = url.match(url_re)) || images[url]) return null;
-	url = m[1];
-	if (typeof filter == 'undefined' || filter === null) filter = +m[2] || 0;
-	console.log('image:', url, filter ? (', filter #'+filter) : '');
-	
-	++loading_img;
-	
-	if (!cb) cb = function(){ console.log('---- generic callback -----') };
-	im.identify(url, function(e, features){
-		if (e) {
-			console.log('!! identify', url, 'error:', e);
-			if (--loading_img == 0) cb();
-			return;
-		}
-		console.log(url, '::', features);
-		var img = new Canvas();
-		img.width = features.width;
-		img.height = features.height;
-		im.convert([url, '-limit', 'memory', '1', '-limit', 'map', '1', 'rgba:-'],
-		function(e, stdout, stderr){
-			if (e) {
-				console.log('!! convert', url, 'error:', e);
-			} else {
-				var ctx = img.getContext('2d');
-				var idata = ctx.createImageData(img.width, img.height);
-				idata.data = new Buffer(stdout);
-				ctx.putImageData(idata, 0, 0);
-				images[url] = { data: img, filter: filter }
-			}
-			if (--loading_img == 0) cb();
-		});
-	});
-}
-
-var filter_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
-	'ligther', 'darker', 'difference', 'add', 'substract',
-	'invert', 'alpha', 'erase', 'overlay', 'hard-light']
-	// TODO: implement add,substract,invert,alpha,erase
-
-function drawImage(isrc, x, y) {
-	var i = images[isrc];
-	if (!i) return;
-	x = x || 0; y = y || 0;
-	try {
-		c.globalCompositeOperation = filter_to_composite[i.filter];
-		c.drawImage(i.data, x, y);
-		c.globalCompositeOperation = 'over';
-	}
-	catch (e) {
-		console.log('error while drawing', i.src, ':', e.message);
-	}
-}
-
-/****************
-end of helpers
-****************/
-
+// these two indicate which objects can change their 'r', 'xw', 'yw' properties
+var RADIUS = { 0: 6.0, 2: 6.0, 4: 6.0, 5: 10.0, 6: 9.0, 11: 12.0, 12: 4.0 };
+var WIDTH = { 1: 9.6, 8: 9.0 };
+// polygons for tiles
 var TILEPOLY = [[],
 	[-1,-1, 1, 1,-1, 1],
 	[], [],
@@ -246,61 +25,364 @@ var TILEPOLY = [[],
 	[-1,-1, 0,-1, 1, 1,-1, 1],
 	[-1, 1, 1, 1, 1, 0,-1, 0]];
 
-function addTile(type) {
+// ========================================================
+// ============= pure functions
+
+function rotate_pts(a, dir) {
+	// 4-way array rotation
+	var ra = [];
+	while (dir > 3) dir -= 4;
+	while (dir < 0) dir += 4;
+	for (var i = 0, l = a.length; i < l; i += 2) {
+		ra[i]   = dir % 2 ? a[i+1] : a[i];
+		ra[i+1] = dir % 2 ? a[i] : a[i+1];
+		if (dir > 1) {
+			ra[i] = -ra[i]; ra[i+1] = -ra[i+1];
+		}
+	}
+	return ra;
+}
+
+function clrTrans(color, tr) {
+	// colorTransform, canvas way
+	tr = tr.split('.');
+	if (tr.length < 8) return color;
+	for (var i = 0; i < 8; i++) {
+		tr[i] = +tr[i];
+		if (isNaN(tr[i])) return color;
+	}
+	var c = [];
+	// step 1: deserialization from canvas-style color
+	if (color[0] == '#') { // "#aabbcc"
+		c[3] = 1;
+		for (var i = 0; i < 3; i++) c[i] = +('0x' + color.substr(i*2+1, 2));
+	}
+	else { // "rgba(r,g,b,a)"
+		c = color.match(/\((.+)\)/)[1].split(',');
+		for (var i = 0; i < c.length; i++) c[i] = +c[i];
+	}
+	// step 2: transformation
+	for (var i = 0; i < 3; i++) {
+		c[i] = c[i] * tr[i * 2] / 100 + tr[i * 2 + 1];
+		c[i] = c[i] > 255 ? 255 : (c[i] < 0 ? 0 : c[i]);
+	}
+	c[3] = c[3] * tr[6] / 100 + tr[7] / 255;
+	c[3] = c[3] > 1 ? 1 : (c[3] < 0 ? 0 : c[3]);
+	// step 3: serialization
+	var s = 'rgba(';
+	for (var i = 0; i < 3; i++) s += Math.round(c[i]) + ', ';
+	s += c[3] + ')';
+	return s;
+}
+
+function hashed(s) {
+	// string -> string [6]
+	hash = 100500;
+	for (var i = 0, l = s.length; i < l; i++)
+		hash = ((hash << 5) + hash) ^ s[i].charCodeAt();
+	if (hash < 0) hash = -hash;
+	hash = hash.toString(36);
+	while (hash.length < 6) hash = '0' + hash;
+	return hash;
+}
+
+// ========================================================
+// ============= init
+
+var NMR = exports.NMR = function(options) {
+	options = options || {};
+	this.tilesize = +options['tilesize'] || 24;
+	this.printable = options['printable'] ? 1 : 0; // always 1px lines or not
+	this.aa = 2; // antialiasing multiplier
+	
+	this.zooms = [];
+	this.cz = 1; // current zoom (for size mods); x_real = x / cz
+	
+	this.mods = {};
+	
+	this.pending = 0; // how many images are not loaded yet
+	this.images = {};
+	
+	var rw = (COLS + 2) * this.tilesize;  // real dimensions
+	var rh = (ROWS + 2) * this.tilesize;
+	this.ca = new Canvas(rw * aa, rh * aa);
+	var c = this.ca.getContext('2d');
+	c.lineCap = 'square';
+	c.antialias = 'gray';
+	c.patternQuality = 'best';
+	this.c = c;
+}
+
+// ========================================================
+// ============= zooming
+
+NMR.prototype.zoom = function(factor) {
+	this.zooms.push(this.cz);
+	this.c.save();
+	this.c.scale(factor, factor);
+	this.cz *= factor;
+	this.c.lineWidth = printable ? 1 : aa/cz;
+}
+
+NMR.prototype.popzoom = function() {
+	if (this.zooms.length) {
+		this.c.restore();
+		this.cz = this.zooms.pop();
+	} else console.log('POPZOOM!!!11');
+}
+
+// ========================================================
+// ============= drawing
+
+NMR.prototype.rnd = function(x, cross) {
+	// round to the pixel's center
+	var mul = this.cz / this.aa;
+	return (Math.floor(x * mul) + (cross ? 0 : 0.5)) / mul;
+}
+
+NMR.prototype.clr = function(type, fill, stroke) {
+	// set stroke and fill colors in one line, applying transformation if necessary
+	var t;
+	if (type != null && this.mods[type+3] && (t = this.mods[type+3]['_color'])) {
+		if (fill) {
+			this.c.fillStyle = fill;
+			fill = clrTrans(this.c.fillStyle, t);
+		}
+		if (stroke) {
+			this.c.strokeStyle = stroke;
+			stroke = clrTrans(this.c.strokeStyle, t);
+		}
+	}
+	if (fill) this.c.fillStyle = fill;
+	if (stroke) this.c.strokeStyle = stroke;
+}
+
+NMR.prototype.line = function(x1, y1, x2, y2) {
+	// sharp 1px line
+	if (!isNaN(x2 + y2)) {
+		this.c.moveTo(this.rnd(x1), this.rnd(y1));
+		this.c.lineTo(this.rnd(x2), this.rnd(y2));
+	} else {
+		this.c.lineTo(this.rnd(x1), this.rnd(y1));
+	}
+}
+
+NMR.prototype.rect = function(x, y, w, h, centered, fill, stroke, noclip) {
+	if (centered) { x = x - w / 2; y = y - h / 2; }
+	if (fill || stroke) this.c.beginPath();
+	this.c.rect(x, y, w, h);
+	if (fill) this.c.fill();
+	if (stroke) {
+		this.c.beginPath();
+		this.line(x, y, x+w, y);
+		this.line(x+w, y+h);
+		this.line(x, y+h);
+		this.c.closePath();
+		this.c.stroke();
+	}
+}
+
+NMR.prototype.circle = function(x, y, r, fill, stroke) {
+	if (fill || stroke) this.c.beginPath();
+	this.c.arc(x, y, r, 0, PI*2, false);
+	if (fill) this.c.fill();
+	if (stroke) this.c.stroke();
+}
+
+NMR.prototype.poly = function(a, fill, stroke, noclose) {
+	// polygon from array [x1, y1, x2, y2, ...]
+	if (fill || stroke) this.c.beginPath();
+	this.c.moveTo(a[0], a[1]);
+	for (var i = 2, l = a.length; i < l; i += 2) {
+		this.c.lineTo(a[i], a[i+1]);
+	}
+	if (!noclose) this.c.closePath();
+	if (fill) this.c.fill();
+	if (stroke) this.c.stroke();
+}
+
+NMR.prototype.regularpoly = function(r, n, fill, stroke) {
+	// regular polygon
+	// used only for drones - do we really need it?
+	if (fill || stroke) this.c.beginPath();
+	var a = PI*2 / n;
+	var R = r / Math.cos(a/2);
+	this.c.save();
+	this.c.rotate(-a/2);
+	c.moveTo(R, 0);
+	for (var i = 0; i < n - 1; i++) {
+		this.c.rotate(a);
+		this.c.lineTo(R, 0);
+	}
+	this.c.closePath();
+	this.c.restore();
+	if (fill) this.c.fill();
+	if (stroke) this.c.stroke();
+}
+
+NMR.prototype.turret = function(type, r) {
+	// 4 arcs around gauss & rocket
+	this.clr(type, '', '#000');
+	for (var i = 0; i < 6; i += PI/2) {
+		this.c.beginPath();
+		this.c.arc(0, 0, r, i + 0.2, PI/2 + i - 0.2, false);
+		this.c.stroke();
+	}
+}
+
+// ========================================================
+// ============= handling external images
+
+NMR.prototype.prepImage = function(urlf, blend, cb) {
+	var m, url;
+	var url_re = /^(http:\/\/.+\.(?:gif|jpg|png))(?:\?(\d+))?$/;
+	
+	if (!urlf || this.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) return null;
+	this.images[urlf] = {};
+	blend = blend || +m[2] || 0;
+	
+	++this.pending;
+	console.log('#', url, blend ? 'blend ' + blend : '');
+	
+	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
+	
+	im.identify(url, function(e, features){
+		if (e) {
+			console.log('!! identify', url, 'error:', e.message);
+			if (--this.pending == 0) cb();
+			return;
+		}
+		console.log('#', url, '::', features);
+		
+		var filename = '/tmp/0' + hashed(url) + '.png';
+		im.convert([url, '-limit', 'memory', '1mb', filename],
+		function(e, stdout, stderr){
+			if (e) {
+				console.log('!! convert', url, 'error:', e.message);
+				if (--this.pending == 0) cb();
+				return;
+			}
+			console.log('#', url, '=>', filename);
+			var img = new Image();
+			img.onload = function () {
+				// success
+				this.images[urlf] = { data: img, blend: blend }
+				if (--this.pending == 0) cb();
+			}
+			img.onerror = function (e) {
+				console.log('!! image.onerror', url, e.message)
+				if (--this.pending == 0) cb();
+			}
+			img.src = filename;
+		});
+	});
+}
+
+var blend_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
+	'ligther', 'darker', 'difference', 'add', 'substract',
+	'invert', 'alpha', 'erase', 'overlay', 'hard-light']
+	// TODO: implement add,substract,invert,alpha,erase
+
+NMR.prototype.drawImage = function(isrc, x, y) {
+	var i = this.images[isrc];
+	if (!i.data) return;
+	x = x || 0; y = y || 0;
+	try {
+		switch (i.blend) {
+		case 10: // invert
+			var ca = new Canvas(i.data.width, i.data.height);
+			var c = c.getContext('2d');
+			c.drawImage(i.data, 0, 0);
+			c.globalCompositeOperation = 'destination-in';
+			c.fillStyle = '#fff';
+			c.fillRect(0, 0, ca.width, ca.height);
+			this.c.globalCompositeOperation = 'difference';
+			this.c.drawImage(c, x, y);
+		break;
+		default:
+			this.c.globalCompositeOperation = blend_to_composite[i.blend];
+			this.c.drawImage(i.data, x, y);
+		}
+		this.c.globalCompositeOperation = 'over';
+	}
+	catch (e) {
+		console.log('!! drawImage', i.data.src, ':', e.message);
+	}
+}
+
+// ========================================================
+// ============= serious stuff
+
+NMR.prototype.addTile = function(x, y, type) {
 	var sx = [1,-1,-1, 1], sy = [1, 1,-1,-1];
+	this.c.save();
+	this.c.translate(x * 2 + 3, y * 2 + 3);
 	// clamp type to [0..33], like n does.
 	// though tiles > 33 behave oddly, they show up as 33, and we should obey.
 	type = (type < 0 ? 0 : (type > 33 ? 33 : type));
 	if (type == 0) {  // empty
-		return true;
+		return;
 	} else if (type == 1) {  // full
-		c.rect(-1,-1, 2, 2);
-		return true;
+		this.c.rect(-1,-1, 2, 2);
+		return;
 	} else type += 2;
 	var T = Math.floor(type / 4), r = type % 4;
-	if (T == 8) c.rotate(-r * Math.PI/2); else c.scale(sx[r], sy[r]);
+	if (T == 8) this.c.rotate(-r * PI/2); else this.c.scale(sx[r], sy[r]);
 	
 	if (T == 2 || T == 3) {  // round things
-		c.moveTo(-1, 1);
-		if (T == 2) c.arc( 1,-1, 2, Math.PI/2, Math.PI, false);
-		if (T == 3) c.arc(-1, 1, 2,-Math.PI/2, 0, false);
-		c.closePath();
+		this.c.moveTo(-1, 1);
+		if (T == 2) this.c.arc( 1,-1, 2, PI/2, PI, false);
+		if (T == 3) this.c.arc(-1, 1, 2,-PI/2, 0, false);
+		this.c.closePath();
 	} else {  // everything else
-		poly(TILEPOLY[T]);
+		this.poly(TILEPOLY[T]);
 	}
-	return true;
+	this.c.restore();
 }
 
-function drawObject(str) {
-	var rads = { 0: 6.0, 2: 6.0, 4: 6.0, 5: 10.0, 6: 9.0, 11: 12.0, 12: 4.0 };
-	var widths = { 1: 9.6, 8: 9.0 };
-	
-	var t, params;
+NMR.prototype.drawObject = function(str) {
+	var t;
 	var osp = str.split('^');
-	if (osp.length < 2 || isNaN(t = +osp[0]) || t < 0) return;
+	if (osp.length < 2 || isNaN(t = +osp[0]) || t < 0) return false;
 	
-	params = osp[1].split(',');
+	var params = osp[1].split(',');
 	if (osp[2]) params = params.concat(osp[2].split(','));
-	if (params.length < 2) return; // we need coordinates, i guess
+	if (params.length < 2) return false; // we need coordinates, i guess
+	
+	// --------- coordinate correction
 	
 	var x = +params[0], y = +params[1];
-	if (isNaN(x) || isNaN(y)) return;
+	if (isNaN(x+y)) return false;
 	
-	if (t == 6) {
+	if (t == 6) { // drone
 		if (params[4] == '') params[4] = -1;
 		if (+params[3] && +params[4] == 1) { // seeking laser -> rotolaser
 			params[3] = 0;
 			params[4] = 131;
 		}
 		var dt = +params[4];
-		x = Math.round((x-12)/24)*24+12;
-		y = Math.round((y-12)/24)*24+12;
+		// clamp coordinates to the grid
+		x = Math.round((x - 12) / 24) * 24 + 12;
+		y = Math.round((y - 12) / 24) * 24 + 12;
+	}
+	
+	if (t == 4) { // floorguard
+		var gx = Math.floor(x / 24) * 24;
+		var gy = Math.floor(y / 24) * 24;
+		var wtype = +(params[3] || 0);
+		var r = RADIUS[4];
+		switch(wtype) {
+			case 0:	y = gy + 24 - r; break;
+			case 1: y = gy + r; break;
+			case 2: x = gx + r; break;
+			case 3:	x = gx + 24 - r; break;
+		}
 	}
 	
 	if (osp[4]) { // custom path
 		var cm = osp[4].split(',');
 		if (cm[1] == 7) {  // circular motion
-			var a = +cm[4] * Math.PI * 2 / 360;
+			var a = +cm[4] * PI * 2 / 360;
 			var r = +cm[5];
 			if (!isNaN(r+a)) {
 				x += r * Math.cos(a);
@@ -321,52 +403,55 @@ function drawObject(str) {
 		}
 	}
 	
-	c.save();
-	c.translate(rnd(x, 1), rnd(y, 1));
+	////////// THE CODE ABOVE THIS LINE IS SAFE
+	// maybe there is a point to make it another pure function,
+	// because this function is HUMONGOUS
 	
-	var radius = rads[t];
+	this.c.save();
+	this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
 	
-	// size mods
-	var mt = (t == 6 ? dt : t + 3);  // unified object type index
-	if (mods[mt]) {
-		var mod = +mods[mt]['r'];
-		if (radius && !isNaN(mod)) {
-			zoom(mod/radius);
+	// --------- apply mods, if any
+	
+	var cmods = this.mods[t == 6 ? dt : t + 3];
+	if (cmods) {
+		// size mods
+		var mod = +cmods['r'];
+		if (!isNaN(mod) && RADIUS[t]) {
+			this.zoom(mod/RADIUS[t]);
 			var zoomed = 1;
 		}
-		mod = +mods[mt]['_xscale'];
-		if (!isNaN(mod)) c.scale(mod/100, 1);
-		mod = +mods[mt]['_yscale'];
-		if (!isNaN(mod)) c.scale(1, mod/100);
-		
-		mod = +mods[mt]['xw'];
-		if (!isNaN(mod) && widths[t]) c.scale(mod/widths[t], 1);
-		mod = +mods[mt]['yw'];
-		if (!isNaN(mod) && widths[t]) c.scale(1, mod/widths[t]);
-		
-		mod = mods[mt]['_icon'];
+		mod = +cmods['_xscale'];
+		if (!isNaN(mod)) this.c.scale(mod/100, 1);
+		mod = +cmods['_yscale'];
+		if (!isNaN(mod)) this.c.scale(1, mod/100);
+		mod = +cmods['xw'];
+		if (!isNaN(mod) && WIDTH[t]) this.c.scale(mod/WIDTH[t], 1);
+		mod = +cmods['yw'];
+		if (!isNaN(mod) && WIDTH[t]) this.c.scale(1, mod/WIDTH[t]);
+		// icon mod
+		mod = cmods['_icon'];
 		if (typeof mod != 'undefined') {
-			mods[mt]['_color'] = '0.255.0.0.0.255.0.100'; // '0.0.0.0.0.0.0.0'; // ROFL WTF
-			if (mod) drawImage(mod.img, mod.x, mod.y);
+			cmods['_color'] = '0.0.0.0.0.0.0.0'; // FUCK. NO. NOT AGAIN.
+			if (mod) this.drawImage(mod.img, mod.x, mod.y);
 		}
 	}
 	
-	if (printable) c.lineWidth = 1;
+	// --------- render object
 	
 	switch (t) {
 	case 0: // gold
-		clr(t, '#c90', '#a67c00');
-		rect(0, 0, 6, 6, 1, 1, 1);
-		clr(t, '#dbbd11');
-		rect(0, 0, 3.6, 3.6, 1, 1);
-		clr(t, '#e2e200');
-		rect(0, 0, 1.8, 1.8, 1, 1);
-		clr(t, '#ffc');
-		rect(0.6, -2.1, 1.5, 1.5, 0, 1);
+		this.clr(t, '#c90', '#a67c00');
+		this.rect(0, 0, 6, 6, 1, 1, 1);
+		this.clr(t, '#dbbd11');
+		this.rect(0, 0, 3.6, 3.6, 1, 1);
+		this.clr(t, '#e2e200');
+		this.rect(0, 0, 1.8, 1.8, 1, 1);
+		this.clr(t, '#ffc');
+		this.rect(0.6, -2.1, 1.5, 1.5, 0, 1);
 	break;
 	case 1: // bounceblock
-		clr(t, '#ccc', '#666');
-		rect(0, 0, 19.2, 19.2, 1, 1, 1);
+		this.clr(t, '#ccc', '#666');
+		this.rect(0, 0, 19.2, 19.2, 1, 1, 1);
 	break;
 	case 2: // launchpad
 		var p = [-4.35, 0, -1.8, -5.1, 1.8, -5.1, 4.8, 0, 0, -2.5, 15, 5];
@@ -374,57 +459,48 @@ function drawObject(str) {
 		var nc = 1;
 		if (vx == 0 || vy == 0) {
 			nc = 0;
-			p = rotate_pts(p, Math.round(-r * 2 / Math.PI));
+			p = rotate_pts(p, Math.round(-r * 2 / PI));
 		} else {
-			r = r * 2 / Math.PI - 0.5;
+			r = r * 2 / PI - 0.5;
 			r = Math.round(r);
-			r = (r + 0.5) * Math.PI / 2;
-			c.rotate(r);
+			r = (r + 0.5) * PI / 2;
+			this.c.rotate(r);
 		}
-		clr(t, '#b0b0b9', '#4b4b54');
-		rect(p[8], p[9], p[10], p[11], 1, 1);
-		clr(t, '#878794');
-		poly(p.slice(0,8), 1);
-		if (nc) c.lineWidth *= 0.8;
-		rect(p[8], p[9], p[10], p[11], 1, 0, 1, nc);
+		this.clr(t, '#b0b0b9', '#4b4b54');
+		this.rect(p[8], p[9], p[10], p[11], 1, 1);
+		this.clr(t, '#878794');
+		this.poly(p.slice(0,8), 1);
+		if (nc && this.tilesize == 24) this.c.lineWidth *= 0.8;
+		this.rect(p[8], p[9], p[10], p[11], 1, 0, 1, nc);
 	break;
 	case 3: // gauss
-		turret(t, 5.75);
-		clr(t, '', '#7f335a');
-		if (!printable) c.lineWidth *= 1.3; // trying to compensate lightness
-		circle(0, 0, 3.05, 0, 1);
+		this.turret(t, 5.75);
+		this.clr(t, '', '#7f335a');
+		if (this.tilesize == 24) this.c.lineWidth *= 1.3; // trying to compensate weird lightness
+		this.circle(0, 0, 3.05, 0, 1);
 	break;
 	case 4: // floorguard
-		c.translate(-rnd(x, 1), -rnd(y, 1));
-		var gx = Math.floor(x/24)*24;
-		var gy = Math.floor(y/24)*24;
-		var wtype = +(params[3] || 0);
 		switch(wtype) {
-			case 0:	y = gy + 24 - radius; break;
-			case 1: y = gy + radius; break;
-			case 2: x = gx + radius; break;
-			case 3:	x = gx + 24 - radius; break;
+			case 1: this.c.scale(1, -1); break;
+			case 2: this.c.rotate(PI/2); break;
+			case 3:	this.c.rotate(-PI/2); break;
 		}
-		c.translate(rnd(x, 1), rnd(y, 1));
-		switch(wtype) {
-			case 1: c.scale(1, -1); break;
-			case 2: c.rotate(Math.PI/2); break;
-			case 3:	c.rotate(-Math.PI/2); break;
-		}
-		clr(t, '#484848', '#09c');
-		c.beginPath();
-		var r = 6 - 0.21;
-		c.lineWidth = 0.42;
-		c.moveTo(-r, 0); c.lineTo(-r, r);
-		c.lineTo( r, r); c.lineTo( r, 0);
-		c.arc(0, 0.21, r, 0, Math.PI, true);
-		c.fill(); c.stroke();
-		clr(t, '#0cf');	rect(-2.4, -1.23, 1.2, 1.2, 0, 1);
-		clr(t, '#09c');	rect( 1.2, -2.55, 1.2, 1.2, 0, 1);
+		this.clr(t, '#484848', '#09c');
+		this.c.beginPath();
+		r = 6 - 0.21;
+		this.c.lineWidth = 0.42;
+		this.c.moveTo(-r, 0); c.lineTo(-r, r);
+		this.c.lineTo( r, r); c.lineTo( r, 0);
+		this.c.arc(0, 0.21, r, 0, PI, true);
+		this.c.fill(); this.c.stroke();
+		this.clr(t, '#0cf');
+		this.rect(-2.4, -1.23, 1.2, 1.2, 0, 1);
+		this.clr(t, '#09c');
+		this.rect( 1.2, -2.55, 1.2, 1.2, 0, 1);
 	break;
 	case 5: // player
-		c.lineJoin = 'bevel';
-		clr(t, '#333', '#000');
+		this.c.lineJoin = 'bevel';
+		this.clr(t, '#333', '#000');
 		var g = [  // too much effort for basically nothing
 			-3.247, -10.670, 0.340, -9.959, 0.093, -7.918,
 			-2.969, -4.392, -3.402, -0.402, -2.165, -0.433,
@@ -432,22 +508,22 @@ function drawObject(str) {
 			-2.010, 4.021, -3.464, 9.959, -1.052, 10.052,
 			1.175, 4.082, -0.093, 10.082, 2.320, 10.113,
 			-0.433, -7.515, -0.711, -4.546, -0.773, -1.515];
-		poly(g.slice( 0, 6), 1, 1); // head
-		poly(g.slice( 6,12), 1, 1); // arms
-		poly(g.slice(12,18), 1, 1);
-		poly(g.slice(18,24), 1, 1); // legs
-		poly(g.slice(24,30), 1, 1);
-		poly(g.slice(30,36), 0, 1, 1); // body
-		poly([g[6], g[7],  g[30],g[31], g[12],g[13]], 0, 1, 1); // arm-to-arm
-		poly([g[18],g[19], g[34],g[35], g[24],g[25]], 0, 1, 1); // leg-to-leg
+		this.poly(g.slice( 0, 6), 1, 1); // head
+		this.poly(g.slice( 6,12), 1, 1); // arms
+		this.poly(g.slice(12,18), 1, 1);
+		this.poly(g.slice(18,24), 1, 1); // legs
+		this.poly(g.slice(24,30), 1, 1);
+		this.poly(g.slice(30,36), 0, 1, 1); // body
+		this.poly([g[6], g[7],  g[30],g[31], g[12],g[13]], 0, 1, 1); // arm-to-arm
+		this.poly([g[18],g[19], g[34],g[35], g[24],g[25]], 0, 1, 1); // leg-to-leg
 	break;
 	case 6: // drone
 		if (+params[3]) { // seeking
-			c.beginPath();
-			clr(dt-3, '#000', '#000');
-			line(-6.36, -6.36, -6.36, -14.5);
-			c.stroke();
-			rect(-6.84, -13.64, 1.8, 1.8, 0, 1);
+			this.c.beginPath();
+			this.clr(dt-3, '#000', '#000');
+			this.line(-6.36, -6.36, -6.36, -14.5);
+			this.c.stroke();
+			this.rect(-6.84, -13.64, 1.8, 1.8, 0, 1);
 		}
 		var bodyC = '#000', bodyF = '#79cbe3', eyeF = '#000', eye_turret = 0;
 		switch (dt) {
@@ -487,11 +563,11 @@ function drawObject(str) {
 				bodyF = '#600';
 				eye_turret = 1;
 				var r = params[8] ? +params[8] : 30;
-				c.lineWidth = r / 100;
-				clr(null, '', 'rgba(255,0,0,0.6)');
-				circle(0, 0, r*0.985, 0, 1);
-				clr(null, '', 'rgba(255,0,0,0.4)');
-				circle(0, 0, r*0.955, 0, 1);
+				this.c.lineWidth = r / 100;
+				this.clr(null, '', 'rgba(255,0,0,0.6)');
+				this.circle(0, 0, r*0.985, 0, 1);
+				this.clr(null, '', 'rgba(255,0,0,0.4)');
+				this.circle(0, 0, r*0.955, 0, 1);
 			break;
 			case 141: // gold
 				bodyC = eyeF = '#860100';
@@ -499,7 +575,7 @@ function drawObject(str) {
 			break;
 			case 201: // text
 				eyeF = 'rgba(0,0,0,0)';
-				/*
+				/* // TODO: figure out how the hell Flash does this
 				function parse_clr(s) {
 					s = parseInt(s, 16) || 0;
 					s = s.toString(16);
@@ -534,56 +610,57 @@ function drawObject(str) {
 			default: // everything else - eye only. tiler (122) falls here too
 				bodyC = bodyF = 'rgba(0,0,0,0)';
 		}
-		clr(dt-3, bodyF, bodyC);
-		c.lineWidth = 1.62;
-		polyg(0, 0, 8.19, 8, 1, 1);
+		this.clr(dt-3, bodyF, bodyC);
+		this.c.lineWidth = 1.62;
+		this.regularpoly(8.19, 8, 1, 1);
 		
 		if (+params[4] == 122) { // tiler's body
-			clr(122-3, '#797988');
-			rect(0, 0, 24, 24, 1, 1);
+			this.clr(122-3, '#797988');
+			this.rect(0, 0, 24, 24, 1, 1);
 		}
 		
 		var r = +params[5];
 		if (isNaN(r) || r > 2 || r < 0) r = -1;
-		c.rotate(r * Math.PI * 0.15);
+		this.c.rotate(r * PI * 0.15);
 		
 		clr(dt-3, eyeF);
 		if (eye_turret) {
-			rect(0.95, 0, 8, 3.87, 1, 1);
+			this.rect(0.95, 0, 8, 3.87, 1, 1);
 		} else {
-			circle(4.5, 0, 2.16, 1);
+			this.circle(4.5, 0, 2.16, 1);
 		}
 	break;
 	case 7: // one-way
 		var r = +params[2];
 		var p = rotate_pts([12, 12, 12, -12, 7, -7, 7, 7], r);
-		clr(t, '#b4b7c2', '#8f94a7');
-		c.beginPath();
-		line(p[0], p[1], p[2], p[3]);
-		line(p[4], p[5]);
-		line(p[6], p[7]);
-		c.closePath();
-		c.fill(); c.stroke();
-		clr(t, '', '#383838');  // top side
-		c.beginPath();
-		var p = rotate_pts([12, 11.5, 12, -11.5], r);
-		line(p[0], p[1], p[2], p[3]);
-		c.stroke();
+		this.clr(t, '#b4b7c2', '#8f94a7');
+		this.c.beginPath();
+		this.line(p[0], p[1], p[2], p[3]);
+		this.line(p[4], p[5]);
+		this.line(p[6], p[7]);
+		this.c.closePath();
+		this.c.fill();
+		this.c.stroke();
+		this.clr(t, '', '#383838');  // top side
+		this.c.beginPath();
+		p = rotate_pts([12, 11.5, 12, -11.5], r);
+		this.line(p[0], p[1], p[2], p[3]);
+		this.c.stroke();
 	break;
 	case 8: // thwump
-		clr(t, '#838383', '#484848');
-		rect(0, 0, 18, 18, 1, 1);
+		this.clr(t, '#838383', '#484848');
+		this.rect(0, 0, 18, 18, 1, 1);
 		var p = rotate_pts([7.2, -9, 7.2, 9, 9, 9, 9, -9], +params[2]);
-		c.beginPath();
-		line(p[0], p[1], -p[4], -p[5]);
-		line(-p[6], -p[7]);
-		line(p[2], p[3]);
-		c.stroke();
-		clr(t, '', '#00ccff');  // zappy side
-		c.beginPath();
-		line(p[0], p[1], p[2], p[3]);
-		line(p[4], p[5], p[6], p[7]);
-		c.stroke();
+		this.c.beginPath();
+		this.line(p[0], p[1], -p[4], -p[5]);
+		this.line(-p[6], -p[7]);
+		this.line(p[2], p[3]);
+		this.c.stroke();
+		this.clr(t, '', '#00ccff');  // zappy side
+		this.c.beginPath();
+		this.line(p[0], p[1], p[2], p[3]);
+		this.line(p[4], p[5], p[6], p[7]);
+		this.c.stroke();
 	break;
 	case 9: // door
 		var sw = 0, l = 0, d = 1;
@@ -614,238 +691,212 @@ function drawObject(str) {
 		}
 		p = rotate_pts(p, r);
 		
-		c.restore();
-		c.save();
-		c.translate(rnd(dx, 1), rnd(dy, 1));
+		this.c.restore(); this.c.save();
+		this.c.translate(this.rnd(dx, 1), this.rnd(dy, 1));
 		if (d) {  // door
-			clr(t, '#797988', '#333');
-			rect(p[0], p[1], p[2], p[3], 1, 1, 1);
+			this.clr(t, '#797988', '#333');
+			this.rect(p[0], p[1], p[2], p[3], 1, 1, 1);
 		}
 		if (l) {  // lock
-			clr(t, '#666673', '#000');
-			rect(p[4], p[5], p[6], p[7], 1, 1, 1);		
+			this.clr(t, '#666673', '#000');
+			this.rect(p[4], p[5], p[6], p[7], 1, 1, 1);		
 		}
-		c.restore();
-		c.save();
-		c.translate(rnd(x, 1), rnd(y, 1));
 		
+		this.c.restore(); this.c.save();
+		this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
 		if (sw) {  // key
-			clr(null, '#acacb5', '#5f5f6b');
-			rect(0, 0, sw, sw, 1, 1, 1);
-			clr(null, '#666', '#000');
-			rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && tilesize==24) ? 1: 0);
+			this.clr(null, '#acacb5', '#5f5f6b');
+			this.rect(0, 0, sw, sw, 1, 1, 1);
+			this.clr(null, '#666', '#000');
+			this.rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && tilesize==24) ? 1: 0);
 		}
 	break;
 	case 10: // rocket launcher
-		turret(t, 5.75);
-		clr(t, '#490024');
-		circle(0, 0, 3.05, 1);
+		this.turret(t, 5.75);
+		this.clr(t, '#490024');
+		this.circle(0, 0, 3.05, 1);
 	break;
 	case 11: // exit
-		clr(t, '#b0b0b9', '#333');
-		rect(0, 0, 24.36, 24, 1, 1, 1);
-		rect(0, -12, 12.18, 24, 0, 0, 1);
-		clr(t, '', '#ccc');
-		rect(0, 0, 17, 17, 1, 0, 1);
-		rect(0, -8.5, 8.5, 17, 0, 0, 1);
-		c.translate(+params[2] - x, +params[3] - y); // exit key
-		clr(null, '#b3b3bb', '#585863');
-		rect(0, 0, 12, 7.5, 1, 1, 1);
-		clr(null, '#b5cae1', '#34343a');
-		rect(0, 0, 7.5, 4.5, 1, 1, 1);
-		clr(null, '', '#6d97c3');
-		c.beginPath();
-		line(-3.75, -2.25, 3.75, 2.25);
-		line(3.75, -2.25, -3.75, 2.25);
-		c.stroke();
+		this.clr(t, '#b0b0b9', '#333');
+		this.rect(0, 0, 24.36, 24, 1, 1, 1);
+		this.rect(0, -12, 12.18, 24, 0, 0, 1);
+		this.clr(t, '', '#ccc');
+		this.rect(0, 0, 17, 17, 1, 0, 1);
+		this.rect(0, -8.5, 8.5, 17, 0, 0, 1);
+		this.c.translate(+params[2] - x, +params[3] - y); // exit key
+		this.clr(null, '#b3b3bb', '#585863');
+		this.rect(0, 0, 12, 7.5, 1, 1, 1);
+		this.clr(null, '#b5cae1', '#34343a');
+		this.rect(0, 0, 7.5, 4.5, 1, 1, 1);
+		this.clr(null, '', '#6d97c3');
+		this.c.beginPath();
+		this.line(-3.75, -2.25, 3.75, 2.25);
+		this.line(3.75, -2.25, -3.75, 2.25);
+		this.c.stroke();
 	break;
 	case 12: // mine
-		clr(t, '#000', '#900');
-		c.lineCap = 'butt';
-		c.lineWidth *= 0.9;
-		c.translate(0, 0.22);
-		c.scale(1, 1.05);
-		c.beginPath();
+		this.clr(t, '#000', '#900');
+		this.c.lineCap = 'butt';
+		this.c.lineWidth *= 0.9;
+		this.c.translate(0, 0.22);
+		this.c.scale(1, 1.05);
+		this.c.beginPath();
 		var p = [3.84, 3.84, 5, 4.8, 3.6, 4.08, 4.56, 4.512];
 		for (var i = 0; i < 8; i += 2) {
-			var a = i * Math.PI/8, sina = Math.sin(a), cosa = Math.cos(a);
-			//line(-p[i] * Math.cos(a), -p[i] * Math.sin(a), p[i+1] * Math.cos(a), p[i+1] * Math.sin(a));
-			c.moveTo(p[i] * cosa, p[i] * sina);
-			c.lineTo(-p[i+1] * cosa, -p[i+1] * sina);
+			var a = i * PI/8;
+			this.c.moveTo(p[i] * Math.cos(a), p[i] * Math.sin(a));
+			this.c.lineTo(-p[i+1] * Math.cos(a), -p[i+1] * Math.sin(a));
 		}
-		c.stroke();
-		circle(0, 0, 2.4, 1, 1);
+		this.c.stroke();
+		this.circle(0, 0, 2.4, 1, 1);
 	break;
 	default: // unhandled object type
-		c.fillStyle = 'rgba(255,255,255,0.5)';
-		rect(0,0,18,18,1,1);
-		c.fillStyle = '#000';
-		c.textAlign = 'center';
-		c.textBaseline = 'middle';
-		c.font = '15px sans-serif';
-		c.fillText(type,0,0);
+		this.c.fillStyle = 'rgba(255,255,255,0.5)';
+		this.rect(0,0,18,18,1,1);
+		this.c.fillStyle = '#000';
+		this.c.textAlign = 'center';
+		this.c.textBaseline = 'middle';
+		this.c.font = '16px sans-serif';
+		this.c.fillText(type,0,0);
 	}
-	if (zoomed) popzoom();
-	c.restore();
+	// don't forget to pop ur zooms
+	if (zoomed) this.popzoom();
+	this.c.restore();
 	return true;
 }
 
-function drawObjectTypes(objects, types) {
+NMR.prototype.drawObjectTypes = function(objects, types) {
  	objects = objects.filter(function(o) {
 		return types.some(function(i) { return +o.split('^')[0] == i });
 	});
 	var r = 0;
 	for (var i = 0, l = objects.length; i < l; i++)
-		if (drawObject(objects[i])) r++;
+		if (this.drawObject(objects[i])) r++;
 	return r;
 }
 
-function drawMap(s, options, callback) {
-	var timer = new Date;
+NMR.prototype.render = function(s, cb) {
+	this.timer = new Date;
 	
 	if (!s) return;
 	if (s[0] == '$') {
 		s = s.slice(1).split('#');
 		if (s.length < 4) return;
-		var title = s[0];
-		var author = s[1];
-		var type = s[2];
+		this.title = s[0];
+		this.author = s[1];
+		this.type = s[2];
+		this.nrt = s[4];
 		s = s[3];
 	}
 	s = s.split('|');
 	if (s.length < 2 || !s[0].length) return;
 	
-	mods = {};
-	images = {};
 	var iq = [];
 	
-	var bg = s[2];
-	var fg = s[3];
+	this.bg = s[2];
 	iq.push([s[2], 0]);
-	iq.push([s[3], null]);
+	this.fg = s[3];
+	iq.push([s[3]]);
 	
 	var ms = [];
-	if (s[5]) {
+	if (s[5]) { // object mod
 		ms = ms.concat(s[5].split(';'));
 	}
-	if (s[6]) {
-		ms = ms.concat(s[6].split(';').map(function(s) { return '8,' + s }));
+	if (s[6]) { // player mod, essentially the same thing
+		ms = ms.concat(s[6].split(';').map(function(o) { return '8,' + o }));
 	}
 	for (var i = 0; i < ms.length; i++) {
 		var mod = ms[i].split(',');
 		if (mod.length > 2 && !isNaN(+mod[0])) {
 			var id = +mod[0];
-			mods[id] = mods[id] || {};
+			this.mods[id] = mods[id] || {};
 			if (mod[1].match(/^_icon2?$/)) {
 				var mi = mod[2];
 				mi = mi.split('^');
 				if (mi.length == 3) {
-					iq.push([mi[2], null]);
+					iq.push([mi[2]]);
 					mod[2] = { x: +mi[0], y: +mi[1], img: mi[2] };
 				} else mod[2] = null;
 			}
-			mods[id][mod[1]] = mod[2];
+			this.mods[id][mod[1]] = mod[2];
 		}
 	}
 	
-	for (var i = 0; i < iq.length; i++) prepImage(iq[i][0], iq[i][1]);
+	for (var i = 0; i < iq.length; i++)
+		prepImage(iq[i][0], iq[i][1], this._render);
 	
-	// SPLIT AND WAIT FOR IMAGES TO LOAD HERE
-	
-	options = options || {};
-	tilesize = +options['tilesize'] || 24;
-	printable = options['printable'] ? 1 : 0;
-	
-	ca = new Canvas();
-	c = ca.getContext('2d');
-	
-	var rw = (COLS + 2) * tilesize;  // real dimensions
-	var rh = (ROWS + 2) * tilesize;
-	var cw = rw * aa, ch = rh * aa;  // canvas dimensions
-	
-	ca.width = cw;
-	ca.height = ch;
-	
-	c.lineCap = 'square';
-	c.antialias = 'gray';
-	c.patternQuality = 'best';
-	c.save();
-	
-	cz = 1;
-	zooms = [];
-	
-	zoom(aa);
-	c.lineWidth = 1;
-	
-	var t = s[0];  // tiles
-	var o = s[1].split('!');  // objects
+	this.s = s;
+	this.cb = cb;
+}
+
+NMR.prototype._render = function() {
+	var t = this.s[0];  // tiles
+	var o = this.s[1].split('!');  // objects
 	
 	// paint background (walls)
-	clr(null, '#ccc');
-	c.fillRect(0, 0, cw, ch);
-	drawImage(bg);
+	this.clr(null, '#ccc');
+	this.c.fillRect(0, 0, this.ca.width, this.ca.height);
+	
+	this.c.save();
+	this.zoom(aa);
+	this.drawImage(bg);
 		
 	// paint objects
-	c.save();
-	var to = 0;
-	zoom(tilesize/24); // scaling object coordinates for custom tile sizes
-	to += drawObjectTypes(o, [2,3,7,9,10,11]); // background objects - always behind
-	to += drawObjectTypes(o, [0,1,4,6,8,12]); // normal objects
-	to += drawObjectTypes(o, [5]); // player - always in front
-	popzoom();
-	c.restore();
+	this.c.save();
+	var total = 0;
+	this.zoom(this.tilesize / 24); // scaling object coordinates for custom tile sizes
+	totalo += this.drawObjectTypes(o, [2,3,7,9,10,11]); // background objects - always behind
+	totalo += this.drawObjectTypes(o, [0,1,4,6,8,12]); // normal objects
+	totalo += this.drawObjectTypes(o, [5]); // player - always in front
+	this.popzoom();
+	this.c.restore();
 	
 	// paint foreground (tiles)
-	c.save();
-	c.beginPath();
-	c.scale(tilesize/2, tilesize/2);
-	for (var i = -1; i < ROWS + 1; i++) {
-		for (var j = -1; j < COLS + 1; j++) {
-			c.save();
-			c.translate(j * 2 + 3, i * 2 + 3);
-			if (i==-1 || j==-1 || i==ROWS || j==COLS) {
-				rect(-1, -1, 2, 2);
-			} else {
-				addTile(t.charCodeAt(i + j * ROWS) - 48);
-			}
-			c.restore();
+	this.c.save();
+	this.c.beginPath();
+	this.c.scale(tilesize/2, tilesize/2);
+	for (var i = -1; i <= ROWS; i++) {
+		for (var j = -1; j <= COLS; j++) {
+			if (i==-1 || j==-1 || i==ROWS || j==COLS)
+				this.addTile(i, j, 1);
+			else
+				this.addTile(i, j, t.charCodeAt(i + j * ROWS) - 48);
 		}
 	}
-	c.restore();
-	clr(null, '#797988');
-	c.fill();
-	drawImage(fg);
+	this.c.restore();
+	this.clr(null, '#797988');
+	this.c.fill();
+	this.drawImage(fg);
 	
 	// back to normal
-	popzoom();
-	c.restore();
+	this.popzoom();
+	this.c.restore();
 	
 	// put up some fancy text
-	zoom(aa*tilesize/24);
-	c.fillStyle = '#000';
+	this.zoom(this.aa * this.tilesize/24);
+	this.c.fillStyle = '#000';
 	if (typeof title != 'undefined') {
-		font.putStr(c, 410, 586, (title ? title : '') +
-			'  ( by ' + author + ' )' +
-			((type && type != 'none') ? '  ::  ' + type : '') +
-			(s[4] ? '  ::  ' + s[4] : ''));
+		font.putStr(this.c, 410, 586, (this.title ? this.title : '') +
+			'  ( by ' + this.author + ' )' +
+			((this.type && this.type != 'none') ? '  ::  ' + this.type : '') +
+			(this.nrt ? '  #  ' + this.nrt : ''));
 	}
-	c.fillStyle = 'rgba(0,0,0,0.3)';
-	font.putStr(c, 2, 592, _copy + '  ' + to + 'objects  ' + (new Date - timer) + 'ms  ' + new Date);
-	popzoom();
+	// info
+	this.c.fillStyle = 'rgba(0,0,0,0.3)';
+	font.putStr(this.c, 2, 592, 'nmr v' + VERSION + '   ' +
+		totalo + 'objects in ' + (new Date - this.timer) + 'ms  at ' + new Date);
+	this.popzoom();
 	
 	// apply antialiasing
-	/**/
-	if (aa > 1) {
-		c.drawImage(ca, 0, 0, rw, rh);
-		var iData = c.getImageData(0, 0, rw, rh);
-		ca.width = rw; ca.height = rh;
-		c.putImageData(iData, 0, 0);
+	if (this.aa > 1) {
+		this.c.drawImage(this.ca, 0, 0, rw, rh);
+		var iData = this.c.getImageData(0, 0, rw, rh);
+		this.ca.width = rw; this.ca.height = rh;
+		this.c.putImageData(iData, 0, 0);
 	}
-	/**/
 	
 	console.log('rendered in', new Date - timer);
-	
-	callback(ca);
+	cb(this.ca);
 }
 
 function canvasToFile(ca, where, callback) {
@@ -870,41 +921,48 @@ function canvasToFile(ca, where, callback) {
 }
 
 function genThumb(srcpath, dstpath, height, callback) {
-	return function() {
-		im.resize({
-			srcPath: srcpath,
-			dstPath: dstpath,
-			width: height*2,
-			height: height,
-			format: 'png'
-		}, function(e, stdout, stderr){
-			if (e) {
-				console.log('!! failed to resize', srcpath, 'error:', e);
-			} else {
-				console.log('resized', srcpath, 'to', dstpath);
-			}
-			callback();
-		});
-	}
+	im.resize({
+		srcPath: srcpath,
+		dstPath: dstpath,
+		width: height*2,
+		height: height,
+		format: 'png'
+	}, function(e, stdout, stderr){
+		if (e) {
+			console.log('!! failed to resize', srcpath, 'error:', e);
+		} else {
+			console.log('T', srcpath, ' --> ', dstpath);
+		}
+		callback();
+	});
 }
 
 exports.renderToFile = function(map_data, height, root, map_id, cb) {
-	var ops = {};
-	var th = 0;
+	var th = 0, r;
 	var filepath = path.join(root, map_id + '-');
 	var fullpath = filepath + '600.png';
 	
-	if (height > 600) { // hi-res
-		ops.tilesize = Math.round(height / 600 * 24);
-		ops.printable = true;
-		drawMap(map_data, ops, function(res) {
+	if (height > 600) { // render hi-res
+		r = new NMR({tilesize: Math.round(height / 600 * 24), printable: 1});
+		r.render(map_data, function(res) {
 			canvasToFile(res, filepath + height + '.png', cb);
 		});
-	} else { // consider generating thumbnail
-		th = height < 600 ? height : 100;
-		drawMap(map_data, {}, function(res) {
-			canvasToFile(res, fullpath, genThumb(fullpath, filepath + th + '.png', th, cb));
-		});
+	} else { // render default, generate thumbnail
+		height = height < 600 ? height : 100;
+		try {
+			fs.statSync(fullpath);
+		}
+		catch (e) {
+			r = new NMR();
+			r.render(map_data, function(res) {
+				canvasToFile(res, fullpath, function() {
+					genThumb(fullpath, filepath + height + '.png', height, cb());
+				});
+			});
+			return;
+		}
+		// if full is already there
+		genThumb(fullpath, filepath + height + '.png', height, cb());
 	}
 }
 
