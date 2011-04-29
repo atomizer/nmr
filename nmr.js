@@ -795,8 +795,8 @@ NMR.prototype.render = function(s, cb) {
 	
 	this.bg = s[2];
 	this.fg = s[3];
-	iq.push([bg, 0]);
-	iq.push([fg]);
+	iq.push([this.bg, 0]);
+	iq.push([this.fg]);
 	
 	var ms = [];
 	if (s[5]) { // object mod
