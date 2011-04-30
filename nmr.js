@@ -491,8 +491,8 @@ NMR.prototype.drawObject = function(str) {
 		this.c.beginPath();
 		r = 6 - 0.21;
 		this.c.lineWidth = 0.42;
-		this.c.moveTo(-r, 0); c.lineTo(-r, r);
-		this.c.lineTo( r, r); c.lineTo( r, 0);
+		this.c.moveTo(-r, 0); this.c.lineTo(-r, r);
+		this.c.lineTo( r, r); this.c.lineTo( r, 0);
 		this.c.arc(0, 0.21, r, 0, PI, true);
 		this.c.fill(); this.c.stroke();
 		this.clr(t, '#0cf');
