@@ -268,7 +268,13 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 			img.onload = function () {
 				// success
 				that.images[urlf] = { data: img, blend: blend }
-				if (--that.pending == 0) cb();
+				if (--that.pending == 0) {
+					try {
+						cb();
+					}catch (e){
+						console.log(e);
+					}
+				}
 				console.log('# onload', filename, that.pending);
 			}
 			// img.onerror = function (e) {
@@ -826,7 +832,7 @@ NMR.prototype.render = function(s, cb) {
 	
 	var that = this;
 	for (var i = 0; i < iq.length; i++)
-		this.prepImage(iq[i][0], iq[i][1], function() {that.prototype._render.apply(that);});
+		this.prepImage(iq[i][0], iq[i][1], that._render);
 	if (this.pending == 0) { // there were no valid images in queue
 		this._render();
 	}
