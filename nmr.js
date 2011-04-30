@@ -265,19 +265,17 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 				return;
 			}
 			console.log('#', url, '=>', filename);
-			if (--that.pending == 0) cb();
-			// var img = new Image();
-			// img.onload = function () {
-				// success
-				// that.images[urlf] = { data: img, blend: blend }
-				// if (--that.pending == 0) cb();
-				// console.log('# onload', filename, that.pending);
-			// }
-			// img.onerror = function (e) {
-				// console.log('!! image.onerror', filename, e.message)
-				// if (--that.pending == 0) cb();
-			// }
-			// img.src = filename;
+			var img = new Image();
+			img.onload = function () {
+				that.images[urlf] = { data: img, blend: blend }
+				console.log('# onload', filename, that.pending);
+				if (--that.pending == 0) cb();
+			}
+			img.onerror = function (e) {
+				console.log('!! image.onerror', filename, e.message)
+				if (--that.pending == 0) cb();
+			}
+			img.src = filename;
 		});
 	});
 }
