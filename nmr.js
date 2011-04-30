@@ -191,6 +191,7 @@ NMR.prototype.circle = function(x, y, r, fill, stroke) {
 
 NMR.prototype.poly = function(a, fill, stroke, noclose) {
 	// polygon from array [x1, y1, x2, y2, ...]
+	if (!a || a.length < 4) return;
 	if (fill || stroke) this.c.beginPath();
 	this.c.moveTo(a[0], a[1]);
 	for (var i = 2, l = a.length; i < l; i += 2) {
@@ -824,7 +825,6 @@ NMR.prototype.render = function(s, cb) {
 	}
 	
 	var that = this;
-	console.log('that:', this);
 	for (var i = 0; i < iq.length; i++)
 		this.prepImage(iq[i][0], iq[i][1], function() {that._render.apply(that, s, cb)} );
 	if (this.pending == 0) { // there were no valid images in queue
@@ -833,7 +833,6 @@ NMR.prototype.render = function(s, cb) {
 }
 
 NMR.prototype._render = function(s, cb) {
-	console.log('this:',this);
 	var t = s[0];  // tiles
 	var o = s[1].split('!');  // objects
 	
