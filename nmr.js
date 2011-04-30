@@ -431,8 +431,12 @@ NMR.prototype.drawObject = function(str) {
 		// icon mod
 		mod = cmods['_icon'];
 		if (typeof mod != 'undefined') {
-			cmods['_color'] = '0.0.0.0.0.0.0.0'; // FUCK. NO. NOT AGAIN.
-			if (mod) this.drawImage(mod.img, mod.x, mod.y);
+			if (mod) {
+				if (zoomed) this.popzoom();
+				this.drawImage(mod.img, mod.x, mod.y);
+				this.c.restore();
+				return true;
+			}
 		}
 	}
 	
