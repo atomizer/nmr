@@ -268,7 +268,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 		expandImages();
 		return;
 	}
-	im.identify(url, function(e, features){
+	im.identify([url, '-limit', 'time', '10'], function(e, features){
 		if (e) {
 			console.log('!! identify', url, 'error:', e.message);
 			if (--that.pending == 0) cb();
