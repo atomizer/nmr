@@ -264,24 +264,19 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 				return;
 			}
 			console.log('#', url, '=>', filename);
-			var img = new Image();
-			img.onload = function () {
+			if (--that.pending == 0) cb();
+			// var img = new Image();
+			// img.onload = function () {
 				// success
-				that.images[urlf] = { data: img, blend: blend }
-				if (--that.pending == 0) {
-					try {
-						cb();
-					}catch (e){
-						console.log(e);
-					}
-				}
-				console.log('# onload', filename, that.pending);
-			}
+				// that.images[urlf] = { data: img, blend: blend }
+				// if (--that.pending == 0) cb();
+				// console.log('# onload', filename, that.pending);
+			// }
 			// img.onerror = function (e) {
 				// console.log('!! image.onerror', filename, e.message)
 				// if (--that.pending == 0) cb();
 			// }
-			img.src = filename;
+			// img.src = filename;
 		});
 	});
 }
