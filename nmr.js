@@ -243,11 +243,31 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	blend = blend || +m[2] || 0;
 	
 	++this.pending;
-	console.log('#', url, blend ? 'blend ' + blend : '');
 	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
 	var that = this;
+	var filename = '/tmp/0' + hashed(url) + '.png';
+	
+	function expandImages() {
+		var img = new Image();
+		img.onload = function () {
+			that.images[urlf] = { data: img, blend: blend }
+			if (--that.pending == 0) cb();
+		}
+		img.onerror = function (e) {
+			console.log('!! image.onerror', filename, e.message)
+			if (--that.pending == 0) cb();
+		}
+		img.src = filename;
+	}
+	var found = 1;
+	try { fs.statSync(filename); }
+	catch (e) { found = 0; }
+	if (found) {
+		expandImages();
+		return;
+	}
 	im.identify(url, function(e, features){
 		if (e) {
 			console.log('!! identify', url, 'error:', e.message);
@@ -256,7 +276,6 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 		}
 		console.log('#', url, '::', features);
 		
-		var filename = '/tmp/0' + hashed(url) + '.png';
 		im.convert([url, '-limit', 'memory', '1mb', filename],
 		function(e, stdout, stderr){
 			if (e) {
@@ -265,17 +284,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 				return;
 			}
 			console.log('#', url, '=>', filename);
-			var img = new Image();
-			img.onload = function () {
-				that.images[urlf] = { data: img, blend: blend }
-				console.log('# onload', filename, that.pending);
-				if (--that.pending == 0) cb();
-			}
-			img.onerror = function (e) {
-				console.log('!! image.onerror', filename, e.message)
-				if (--that.pending == 0) cb();
-			}
-			img.src = filename;
+			expandImages();
 		});
 	});
 }
