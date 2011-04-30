@@ -295,7 +295,7 @@ NMR.prototype.drawImage = function(isrc, x, y) {
 			var ca = new Canvas(i.data.width, i.data.height);
 			var ctx = ca.getContext('2d');
 			ctx.drawImage(i.data, 0, 0);
-			ctx.globalCompositeOperation = 'destination-in';
+			ctx.globalCompositeOperation = 'source-in';
 			ctx.fillStyle = '#fff';
 			ctx.fillRect(0, 0, ca.width, ca.height);
 			this.c.globalCompositeOperation = 'difference';
