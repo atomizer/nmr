@@ -778,7 +778,6 @@ NMR.prototype.drawObjectTypes = function(objects, types) {
 
 NMR.prototype.render = function(s, cb) {
 	this.timer = new Date;
-	this.cb = cb;
 	
 	if (!s) return;
 	if (s[0] == '$') {
@@ -792,7 +791,6 @@ NMR.prototype.render = function(s, cb) {
 	}
 	s = s.split('|');
 	if (s.length < 2 || !s[0].length) return;
-	this.s = s;
 	
 	var iq = [];
 	
@@ -826,17 +824,18 @@ NMR.prototype.render = function(s, cb) {
 	}
 	
 	var that = this;
+	console.log('that:', this);
 	for (var i = 0; i < iq.length; i++)
-		this.prepImage(iq[i][0], iq[i][1], that._render);
+		this.prepImage(iq[i][0], iq[i][1], fucntion() {this._render.apply(that, s, cb)} );
 	if (this.pending == 0) { // there were no valid images in queue
 		this._render();
 	}
 }
 
-NMR.prototype._render = function() {
-	console.log(this);
-	var t = this.s[0];  // tiles
-	var o = this.s[1].split('!');  // objects
+NMR.prototype._render = function(s, cb) {
+	console.log('this:',this);
+	var t = s[0];  // tiles
+	var o = s[1].split('!');  // objects
 	
 	// paint background (walls)
 	this.clr(null, '#ccc');
@@ -903,7 +902,7 @@ NMR.prototype._render = function() {
 	}
 	
 	console.log('rendered in', new Date - this.timer);
-	this.cb(this.ca);
+	cb(this.ca);
 }
 
 function canvasToFile(ca, where, callback) {
