@@ -826,13 +826,14 @@ NMR.prototype.render = function(s, cb) {
 	
 	var that = this;
 	for (var i = 0; i < iq.length; i++)
-		this.prepImage(iq[i][0], iq[i][1], function() {that._render.apply(that);});
+		this.prepImage(iq[i][0], iq[i][1], function() {that.prototype._render.apply(that);});
 	if (this.pending == 0) { // there were no valid images in queue
 		this._render();
 	}
 }
 
 NMR.prototype._render = function() {
+	console.log(this);
 	var t = this.s[0];  // tiles
 	var o = this.s[1].split('!');  // objects
 	
