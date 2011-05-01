@@ -252,7 +252,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	
 	var that = this;
 	var filename = path.join(IMAGE_ROOT, '0' + hashed(url));
-	var tmpfile = filename + m[2];
+	var tmpfile = filename + '.' + m[2];
 	filename += '.png';
 	
 	function expandImages() {
