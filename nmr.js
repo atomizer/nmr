@@ -238,7 +238,10 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	var m, url;
 	var url_re = /^(http:\/\/.+\.(?:gif|jpg|png))(?:\?(.+))?$/;
 	
-	if (!urlf || this.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) return null;
+	if (!urlf || this.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) {
+		if (--this.pending == 0) cb();
+		return;
+	}
 	this.images[urlf] = {};
 	blend = blend || +m[2] || 0;
 	
@@ -856,24 +859,20 @@ NMR.prototype._render = function(s, cb) {
 	this.clr(null, '#ccc');
 	this.c.fillRect(0, 0, this.ca.width, this.ca.height);
 	
-	this.c.save();
 	this.zoom(this.aa);
-	this.drawImage(this.bg);
 		
 	// paint objects
-	this.c.save();
 	var totalo = 0;
 	this.zoom(this.tilesize / 24); // scaling object coordinates for custom tile sizes
+	this.drawImage(this.bg);
 	totalo += this.drawObjectTypes(o, [2,3,7,9,10,11]); // background objects - always behind
 	totalo += this.drawObjectTypes(o, [0,1,4,6,8,12]); // normal objects
 	totalo += this.drawObjectTypes(o, [5]); // player - always in front
 	this.popzoom();
-	this.c.restore();
 	
 	// paint foreground (tiles)
-	this.c.save();
+	this.zoom(this.tilesize / 2);
 	this.c.beginPath();
-	this.c.scale(this.tilesize/2, this.tilesize/2);
 	for (var i = -1; i <= ROWS; i++) {
 		for (var j = -1; j <= COLS; j++) {
 			this.c.save();
@@ -884,17 +883,13 @@ NMR.prototype._render = function(s, cb) {
 			this.c.restore();
 		}
 	}
-	this.c.restore();
+	this.popzoom();
 	this.clr(null, '#797988');
 	this.c.fill();
+	
+	this.zoom(this.tilesize / 24);
 	this.drawImage(this.fg);
-	
-	// back to normal
-	this.popzoom();
-	this.c.restore();
-	
 	// put up some fancy text
-	this.zoom(this.aa * this.tilesize/24);
 	this.c.fillStyle = '#000';
 	if (typeof this.title != 'undefined') {
 		font.putStr(this.c, 410, 586, (this.title ? this.title : '') +
@@ -906,6 +901,9 @@ NMR.prototype._render = function(s, cb) {
 	this.c.fillStyle = 'rgba(0,0,0,0.3)';
 	font.putStr(this.c, 2, 592, 'nmr v' + VERSION + '   ' +
 		totalo + 'objects in ' + (new Date - this.timer) + 'ms   ' + new Date);
+	this.popzoom();
+	
+	// back to normal
 	this.popzoom();
 	
 	// apply antialiasing
