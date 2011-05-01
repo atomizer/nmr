@@ -37,14 +37,12 @@ function tryToServe(req, res, second_try) {
 	})
 	.otherwise(function(err) {
 		var m = req.url.match(/^\/(\d+)-(\d+)/);
-		if (second_try || !m) {
+		var height, map_id;
+		if (second_try || !m || !(map_id = +m[1]) || ((height = +m[2]) >= 2400) ) {
 			res.writeHead(404, {'Content-Type': 'text/plain'});
-			res.write('File not found. Error: ' + err);
-			res.write('\n\nThis is all your fault.');
-			res.end('\n'+second_try);
+			res.end('there''s no such thing, sorry.');
 			console.log('404', ip, req.url);
 		} else {
-			var height = m[2], map_id = m[1];
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 				if (!e && mres.statusCode == 200) {
 					nmr.renderToFile(body, height, ROOT, map_id, function() {
@@ -52,7 +50,7 @@ function tryToServe(req, res, second_try) {
 					});
 				} else {
 					res.writeHead(mres.statusCode, {'Content-Type': 'text/plain'});
-					res.end('Received bad status from NUMA: ' + mres.statusCode + '\nError: ' + e);
+					res.end('NUMA returned ' + mres.statusCode + (e ? '\nError: ' + e : ''));
 				}
 			});
 		}
