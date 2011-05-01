@@ -2,7 +2,6 @@ var VERSION = '016n';
 
 var fs = require('fs'),
 	path = require('path'),
-	request = require('request'),
 	im = require('imagemagick'),
 	Canvas = require('canvas'),
 	Image = Canvas.Image;
@@ -251,9 +250,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
 	var that = this;
-	var filename = path.join(IMAGE_ROOT, '0' + hashed(url));
-	var tmpfile = filename + '.' + m[2];
-	filename += '.png';
+	var filename = path.join(IMAGE_ROOT, hashed(url) + '.png');
 	
 	function expandImages() {
 		var img = new Image();
@@ -274,29 +271,15 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 		expandImages();
 		return;
 	}
-	request({uri: url}, function(e, res, body) {
-		if (e || res.statusCode != 200) {
-			console.log('!! request', url, 'error', e);
+	im.convert([url, '-limit', 'memory', '1mb', filename],
+	function(e, stdout, stderr){
+		if (e) {
+			console.log('!! convert', url, 'error:', e.message);
 			if (--that.pending == 0) cb();
 			return;
 		}
-		fs.writeFileSync(tmpfile, body);
-		if (filename == tmpfile) {
-			// we got a png, no need to convert
-			// also sometimes png -> png fails for no apparent reason
-			expandImages();
-			return;
-		}
-		im.convert([tmpfile, '-limit', 'memory', '1mb', filename],
-		function(e, stdout, stderr){
-			if (e) {
-				console.log('!! convert', url, 'error:', e.message);
-				if (--that.pending == 0) cb();
-				return;
-			}
-			console.log('#', url, '=>', filename);
-			expandImages();
-		});
+		console.log('#', url, '=>', filename);
+		expandImages();
 	});
 }
 
