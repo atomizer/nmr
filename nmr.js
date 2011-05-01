@@ -447,6 +447,9 @@ NMR.prototype.drawObject = function(str) {
 				return true;
 			}
 		}
+		// alpha
+		mod = cmods['_alpha'];
+		if (!isNaN(mod)) this.c.globalAlpha = mod/100;
 	}
 	
 	// --------- render object
