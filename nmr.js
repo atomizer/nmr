@@ -2,6 +2,7 @@ var VERSION = '016n';
 
 var fs = require('fs'),
 	path = require('path'),
+	request = require('request'),
 	im = require('imagemagick'),
 	Canvas = require('canvas'),
 	Image = Canvas.Image;
