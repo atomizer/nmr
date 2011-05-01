@@ -40,7 +40,7 @@ function tryToServe(req, res, second_try) {
 		var height, map_id;
 		if (second_try || !m || !(map_id = +m[1]) || ((height = +m[2]) >= 2400) ) {
 			res.writeHead(404, {'Content-Type': 'text/plain'});
-			res.end('there''s no such thing, sorry.');
+			res.end('there is no such thing, sorry.');
 			console.log('404', ip, req.url);
 		} else {
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
