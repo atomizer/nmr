@@ -242,8 +242,6 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	this.images[urlf] = {};
 	blend = blend || +m[2] || 0;
 	
-	++this.pending;
-	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
 	var that = this;
@@ -838,6 +836,7 @@ NMR.prototype.render = function(s, cb) {
 		}
 	}
 	
+	this.pending = iq.length;
 	var that = this;
 	for (var i = 0; i < iq.length; i++)
 		this.prepImage(iq[i][0], iq[i][1], function() {that._render.apply(that, [s, cb])} );
