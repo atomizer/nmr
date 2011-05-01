@@ -10,6 +10,8 @@ console.log('Using cairo', Canvas.cairoVersion);
 
 var font = require('./font');
 
+var IMAGE_ROOT = '/home/node/static/images';
+
 var PI = Math.PI;
 var COLS = 31, ROWS = 23;
 // these two indicate which objects can change their 'r', 'xw', 'yw' properties
@@ -236,19 +238,21 @@ NMR.prototype.turret = function(type, r) {
 
 NMR.prototype.prepImage = function(urlf, blend, cb) {
 	var m, url;
-	var url_re = /^(http:\/\/.+\.(?:gif|jpg|png))(?:\?(.+))?$/;
+	var url_re = /^(http:\/\/.+\.(gif|jpg|png))(?:\?(.+))?$/;
 	
 	if (!urlf || this.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) {
 		if (--this.pending == 0) cb();
 		return;
 	}
 	this.images[urlf] = {};
-	blend = blend || +m[2] || 0;
+	blend = blend || +m[3] || 0;
 	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
 	var that = this;
-	var filename = '/tmp/0' + hashed(url) + '.png';
+	var filename = path.join(IMAGE_ROOT, '0' + hashed(url));
+	var tmpfile = filename + m[2];
+	filename += '.png';
 	
 	function expandImages() {
 		var img = new Image();
@@ -269,15 +273,20 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 		expandImages();
 		return;
 	}
-	im.identify([url, '-limit', 'time', '10'], function(e, features){
-		if (e) {
-			console.log('!! identify', url, 'error:', e.message);
+	request({uri: url}, function(e, res, body) {
+		if (e || res.statusCode != 200) {
+			console.log('!! request', url, 'error', e);
 			if (--that.pending == 0) cb();
 			return;
 		}
-		console.log('#', url, '::', features);
-		
-		im.convert([url, '-limit', 'memory', '1mb', filename],
+		fs.writeFileSync(tmpfile, body);
+		if (filename == tmpfile) {
+			// we got a png, no need to convert
+			// also sometimes png -> png fails for no apparent reason
+			expandImages();
+			return;
+		}
+		im.convert([tmpfile, '-limit', 'memory', '1mb', filename],
 		function(e, stdout, stderr){
 			if (e) {
 				console.log('!! convert', url, 'error:', e.message);
@@ -293,7 +302,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 var blend_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
 	'ligther', 'darker', 'difference', 'add', 'substract',
 	'invert', 'alpha', 'erase', 'overlay', 'hard-light']
-	// TODO: implement add,substract,invert,alpha,erase
+	// TODO: implement add,substract,alpha,erase
 
 NMR.prototype.drawImage = function(isrc, x, y) {
 	var i = this.images[isrc];
