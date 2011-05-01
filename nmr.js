@@ -93,7 +93,7 @@ var NMR = exports.NMR = function(options) {
 	options = options || {};
 	this.tilesize = +options['tilesize'] || 24;
 	this.printable = options['printable'] ? 1 : 0; // always 1px lines or not
-	this.aa = 2; // antialiasing multiplier
+	this.aa = +options['aa'] || 1; // antialiasing multiplier
 	
 	this.zooms = [];
 	this.cz = 1; // current zoom (for size mods); x_real = x / cz
@@ -844,6 +844,9 @@ NMR.prototype.render = function(s, cb) {
 }
 
 NMR.prototype._render = function(s, cb) {
+	if (this.rendering) return;
+	this.rendering = 1;
+	
 	var t = s[0];  // tiles
 	var o = s[1].split('!');  // objects
 	
@@ -911,7 +914,7 @@ NMR.prototype._render = function(s, cb) {
 		this.c.putImageData(iData, 0, 0);
 	}
 	
-	console.log('rendered in', new Date - this.timer);
+	console.log('render', new Date - this.timer, 'ms');
 	cb(this.ca);
 }
 
@@ -947,7 +950,7 @@ function genThumb(srcpath, dstpath, height, callback) {
 		if (e) {
 			console.log('!! failed to resize', srcpath, 'error:', e);
 		} else {
-			console.log('T', srcpath, ' --> ', dstpath);
+			console.log('T', srcpath, '-->', dstpath);
 		}
 		callback();
 	});
@@ -959,7 +962,7 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 	var fullpath = filepath + '600.png';
 	
 	if (height > 600) { // render hi-res
-		r = new NMR({tilesize: Math.round(height / 600 * 24), printable: 1});
+		r = new NMR({tilesize: Math.round(height / 600 * 24), printable: 1, aa: 1});
 		r.render(map_data, function(res) {
 			canvasToFile(res, filepath + height + '.png', cb);
 		});
@@ -969,7 +972,7 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 			fs.statSync(fullpath);
 		}
 		catch (e) {
-			r = new NMR();
+			r = new NMR({aa: 2});
 			r.render(map_data, function(res) {
 				canvasToFile(res, fullpath, function() {
 					genThumb(fullpath, filepath + height + '.png', height, cb);
