@@ -379,7 +379,7 @@ NMR.prototype.drawObject = function(str) {
 		var gx = Math.floor(x / 24) * 24;
 		var gy = Math.floor(y / 24) * 24;
 		var wtype = +(params[3] || 0);
-		var r = RADIUS[4];
+		var r = (this.mods[7] ? +this.mods[7]['r'] : 0) || RADIUS[4];
 		switch(wtype) {
 			case 0:	y = gy + 24 - r; break;
 			case 1: y = gy + r; break;
