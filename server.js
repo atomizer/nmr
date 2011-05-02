@@ -24,9 +24,6 @@ function tryToServe(req, res, second_try) {
 	// delivering
 	paperboy
 	.deliver(ROOT, req, res)
-	.before(function() {
-		// console.log('req', req.url);
-	})
 	.after(function(statCode) {
 		console.log(statCode + '', ip, req.url);
 	})
@@ -38,7 +35,7 @@ function tryToServe(req, res, second_try) {
 	.otherwise(function(err) {
 		var m = req.url.match(/^\/(\d+)-(\d+)/);
 		var height, map_id;
-		if (second_try || !m || !(map_id = +m[1]) || ((height = +m[2]) >= 2400) ) {
+		if (second_try || !m || !(map_id = +m[1]) || ((height = +m[2]) > 2400) ) {
 			res.writeHead(404, {'Content-Type': 'text/plain'});
 			res.end('there is no such thing, sorry.');
 			console.log('404', ip, req.url);
