@@ -129,8 +129,13 @@ NMR.prototype.zoom = function(factor) {
 NMR.prototype.popzoom = function() {
 	if (this.zooms.length) {
 		this.c.restore();
+		var pz = this.cz;
 		this.cz = this.zooms.pop();
-	} else console.log('POPZOOM!!!11');
+		return pz;
+	} else {
+		console.log('POPZOOM!!!11');
+		return 1;
+	}
 }
 
 // ========================================================
@@ -350,20 +355,22 @@ NMR.prototype.drawObject = function(str) {
 	
 	var params = osp[1].split(',');
 	if (osp[2]) params = params.concat(osp[2].split(','));
-	if (params.length < 2) return false; // we need coordinates, i guess
+	if (params.length < 2) return false; // we need coordinates at least
 	
 	// --------- coordinate correction
 	
 	var x = +params[0], y = +params[1];
-	if (isNaN(x+y)) return false;
+	if (isNaN(x+y)) x = y = -1e4; // this is a way to hide door without hiding switch
+	// and without if () {...} madness, which we have plenty of already
 	
 	if (t == 6) { // drone
-		if (params[4] == '') params[4] = -1;
-		if (+params[3] && +params[4] == 1) { // seeking laser -> rotolaser
-			params[3] = 0;
-			params[4] = 131;
-		}
 		var dt = +params[4];
+		if (params[4] == '' || isNaN(dt)) dt = -1; // do not default to zap
+		var seeking = +params[3];
+		if (seeking && dt == 1) { // seeking laser -> rotolaser
+			seeking = 0;
+			dt = 131;
+		}
 		// clamp coordinates to the grid
 		x = Math.round((x - 12) / 24) * 24 + 12;
 		y = Math.round((y - 12) / 24) * 24 + 12;
@@ -372,13 +379,14 @@ NMR.prototype.drawObject = function(str) {
 	if (t == 4) { // floorguard
 		var gx = Math.floor(x / 24) * 24;
 		var gy = Math.floor(y / 24) * 24;
-		var wtype = +(params[3] || 0);
-		var r = (this.mods[7] ? +this.mods[7]['r'] : 0) || RADIUS[4];
+		var wtype = +params[3] || 0;
+		var r = RADIUS[4];
+		if (this.mods[7] && !isNaN(this.mods[7]['r'])) r = +this.mods[7]['r'];
 		switch(wtype) {
-			case 0:	y = gy + 24 - r; break;
 			case 1: y = gy + r; break;
 			case 2: x = gx + r; break;
-			case 3:	x = gx + 24 - r; break;
+			case 3: x = gx + 24 - r; break;
+			default: y = gy + 24 - r; // normal
 		}
 	}
 	
@@ -465,7 +473,8 @@ NMR.prototype.drawObject = function(str) {
 	break;
 	case 2: // launchpad
 		var p = [-4.35, 0, -1.8, -5.1, 1.8, -5.1, 4.8, 0, 0, -2.5, 15, 5];
-		var vx = +params[2], vy = +params[3], r = Math.atan2(vx, -vy);
+		var vx = +params[2] || 0, vy = +params[3] || 0;
+		var r = Math.atan2(vx, -vy);
 		var nc = 1;
 		if (vx == 0 || vy == 0) {
 			nc = 0;
@@ -528,7 +537,7 @@ NMR.prototype.drawObject = function(str) {
 		this.poly([g[18],g[19], g[34],g[35], g[24],g[25]], 0, 1, 1); // leg-to-leg
 	break;
 	case 6: // drone
-		if (+params[3]) { // seeking
+		if (seeking) {
 			this.c.beginPath();
 			this.clr(dt-3, '#000', '#000');
 			this.line(-6.36, -6.36, -6.36, -14.5);
@@ -572,7 +581,7 @@ NMR.prototype.drawObject = function(str) {
 			case 132: // circular laser
 				bodyF = '#600';
 				eye_turret = 1;
-				var r = params[8] ? +params[8] : 30;
+				var r = (params[8] && !isNaN(params[8])) ? +params[8] : 30;
 				this.c.lineWidth = r / 100;
 				this.clr(null, '', 'rgba(255,0,0,0.6)');
 				this.circle(0, 0, r*0.985, 0, 1);
@@ -624,7 +633,7 @@ NMR.prototype.drawObject = function(str) {
 		this.c.lineWidth = 1.62;
 		this.regularpoly(8.19, 8, 1, 1);
 		
-		if (+params[4] == 122) { // tiler's body
+		if (dt == 122) { // tiler's body
 			this.clr(122-3, '#797988');
 			this.rect(0, 0, 24, 24, 1, 1);
 		}
@@ -642,6 +651,7 @@ NMR.prototype.drawObject = function(str) {
 	break;
 	case 7: // one-way
 		var r = +params[2];
+		if (isNaN(r) || r < 0 || r > 3 || Math.floor(r) != r) r = 3;
 		var p = rotate_pts([12, 12, 12, -12, 7, -7, 7, 7], r);
 		this.clr(t, '#b4b7c2', '#8f94a7');
 		this.c.beginPath();
@@ -660,7 +670,9 @@ NMR.prototype.drawObject = function(str) {
 	case 8: // thwump
 		this.clr(t, '#838383', '#484848');
 		this.rect(0, 0, 18, 18, 1, 1);
-		var p = rotate_pts([7.2, -9, 7.2, 9, 9, 9, 9, -9], +params[2]);
+		var r = +params[2];
+		if (isNaN(r) || r < 0 || r > 3 || Math.floor(r) != r) r = 1;
+		var p = rotate_pts([7.2, -9, 7.2, 9, 9, 9, 9, -9], r);
 		this.c.beginPath();
 		this.line(p[0], p[1], -p[4], -p[5]);
 		this.line(-p[6], -p[7]);
@@ -673,52 +685,52 @@ NMR.prototype.drawObject = function(str) {
 		this.c.stroke();
 	break;
 	case 9: // door
-		var sw = 0, l = 0, d = 1;
+		var sw = 0, locked = 0, door = 1;
 		if (+params[6]) {  // locked
-			sw = 7.5; l = 1;
+			sw = 7.5; locked = 1;
 		}
 		else if (+params[3]) {  // trap
-			sw = 5;	d = 0;
+			sw = 5;	door = 0;
 		}
-		var r = 0,
-			dx = (+params[4] + +params[7])*24 + 12,
-			dy = (+params[5] + +params[8])*24 + 12;
+		var r = 0;
+		var dx = (+params[4] + +params[7])*24 + 12;
+		var dy = (+params[5] + +params[8])*24 + 12;
+		if (isNaN(dx+dy)) door = 0;
 		
-		if (+params[2]) {  // horisontal ?
-			if (+params[8]) {  // Y shift
-				r = 3; dy += 24;
-			} else r = 1;
-		} else {
-			if (+params[7]) {  // X shift
-				r = 2; dx += 24;
-			} else r = 0;
-		}
-		
-		p = [10.08, 0, 1.92, 24, 10, 0, 4, 10.44];
-		// dirty hacks for thin locked doors
-		if (+params[6] && r>1 && this.tilesize==24) {
-			p[2] = 1; dx-=(r==2?1:0); dy-=(r==3?1:0);
-		}
-		p = rotate_pts(p, r);
-		
-		this.c.restore(); this.c.save();
-		this.c.translate(this.rnd(dx, 1), this.rnd(dy, 1));
-		if (d) {  // door
+		if (door) {  // door
+			if (+params[2]) {  // horisontal ?
+				if (+params[8]) {  // Y shift
+					r = 3; dy += 24;
+				} else r = 1;
+			} else {
+				if (+params[7]) {  // X shift
+					r = 2; dx += 24;
+				} else r = 0;
+			}
+			
+			p = [10.08, 0, 1.92, 24, 10, 0, 4, 10.44];
+			// dirty hacks for thin locked doors
+			if (locked && r > 1 && this.tilesize == 24) {
+				p[2] = 1; dx-=(r==2?1:0); dy-=(r==3?1:0);
+			}
+			p = rotate_pts(p, r);
+			
+			this.c.restore(); this.c.save();
+			this.c.translate(this.rnd(dx, 1), this.rnd(dy, 1));
 			this.clr(t, '#797988', '#333');
 			this.rect(p[0], p[1], p[2], p[3], 1, 1, 1);
+			if (locked) {
+				this.clr(t, '#666673', '#000');
+				this.rect(p[4], p[5], p[6], p[7], 1, 1, 1);		
+			}
 		}
-		if (l) {  // lock
-			this.clr(t, '#666673', '#000');
-			this.rect(p[4], p[5], p[6], p[7], 1, 1, 1);		
-		}
-		
-		this.c.restore(); this.c.save();
-		this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
 		if (sw) {  // key
+			this.c.restore(); this.c.save();
+			this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
 			this.clr(null, '#acacb5', '#5f5f6b');
 			this.rect(0, 0, sw, sw, 1, 1, 1);
 			this.clr(null, '#666', '#000');
-			this.rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && this.tilesize==24) ? 1: 0);
+			this.rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && this.tilesize==24) ? 1 : 0);
 		}
 	break;
 	case 10: // rocket launcher
@@ -733,7 +745,11 @@ NMR.prototype.drawObject = function(str) {
 		this.clr(t, '', '#ccc');
 		this.rect(0, 0, 17, 17, 1, 0, 1);
 		this.rect(0, -8.5, 8.5, 17, 0, 0, 1);
-		this.c.translate(+params[2] - x, +params[3] - y); // exit key
+		// exit key
+		x = +params[2]; y = +params[3];
+		if (isNaN(x+y)) x = y = -1e4;
+		this.c.restore(); this.c.save();
+		this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
 		this.clr(null, '#b3b3bb', '#585863');
 		this.rect(0, 0, 12, 7.5, 1, 1, 1);
 		this.clr(null, '#b5cae1', '#34343a');
