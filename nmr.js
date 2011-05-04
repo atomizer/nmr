@@ -13,6 +13,7 @@ var font = require('./font');
 var IMAGE_ROOT = '/home/node/static/images';
 
 var PI = Math.PI;
+var FARAWAY = -1e4;
 var COLS = 31, ROWS = 23;
 // these two indicate which objects can change their 'r', 'xw', 'yw' properties
 var RADIUS = { 0: 6.0, 2: 6.0, 4: 6.0, 5: 10.0, 6: 9.0, 11: 12.0, 12: 4.0 };
@@ -360,8 +361,9 @@ NMR.prototype.drawObject = function(str) {
 	// --------- coordinate correction
 	
 	var x = +params[0], y = +params[1];
-	if (isNaN(x+y)) x = y = -1e4; // this is a way to hide door without hiding switch
+	// this is a way to hide door without hiding switch
 	// and without if () {...} madness, which we have plenty of already
+	if (isNaN(x+y)) x = y = FARAWAY;
 	
 	if (t == 6) { // drone
 		var dt = +params[4];
@@ -424,9 +426,17 @@ NMR.prototype.drawObject = function(str) {
 	// --------- apply mods, if any
 	
 	var cmods = this.mods[t == 6 ? dt : t + 3];
+	var mod;
 	if (cmods) {
+		// icon mod
+		mod = cmods['_icon'];
+		if (mod) {
+			if (zoomed) this.popzoom();
+			this.drawImage(mod.img, mod.x, mod.y);
+			this.c.translate(FARAWAY, FARAWAY);
+		}
 		// size mods
-		var mod = +cmods['r'];
+		mod = +cmods['r'];
 		if (!isNaN(mod) && RADIUS[t]) {
 			this.zoom(mod/RADIUS[t]);
 			var zoomed = 1;
@@ -439,16 +449,6 @@ NMR.prototype.drawObject = function(str) {
 		if (!isNaN(mod) && WIDTH[t]) this.c.scale(mod/WIDTH[t], 1);
 		mod = +cmods['yw'];
 		if (!isNaN(mod) && WIDTH[t]) this.c.scale(1, mod/WIDTH[t]);
-		// icon mod
-		mod = cmods['_icon'];
-		if (typeof mod != 'undefined') {
-			if (mod) {
-				if (zoomed) this.popzoom();
-				this.drawImage(mod.img, mod.x, mod.y);
-				this.c.restore();
-				return true;
-			}
-		}
 		// alpha
 		mod = cmods['_alpha'];
 		if (!isNaN(mod)) this.c.globalAlpha = mod/100;
@@ -747,7 +747,7 @@ NMR.prototype.drawObject = function(str) {
 		this.rect(0, -8.5, 8.5, 17, 0, 0, 1);
 		// exit key
 		x = +params[2]; y = +params[3];
-		if (isNaN(x+y)) x = y = -1e4;
+		if (isNaN(x+y)) x = y = FARAWAY;
 		this.c.restore(); this.c.save();
 		this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
 		this.clr(null, '#b3b3bb', '#585863');
