@@ -949,6 +949,7 @@ function canvasToFile(ca, where, callback) {
 }
 
 function genThumb(srcpath, dstpath, height, callback) {
+	if (!height) callback();
 	im.resize({
 		srcPath: srcpath,
 		dstPath: dstpath,
@@ -971,17 +972,17 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 	var fullpath = filepath + '600.png';
 	
 	if (height > 600) { // render hi-res
-		r = new NMR({tilesize: Math.round(height / 600 * 24), printable: 1, aa: 1});
+		r = new NMR({tilesize: Math.round(height / 600 * 24), printable: 1});
 		r.render(map_data, function(res) {
 			canvasToFile(res, filepath + height + '.png', cb);
 		});
-	} else { // render default, generate thumbnail
-		height = height < 600 ? height : 100;
+	} else { // render default, generate thumbnail if needed
+		height = height < 600 ? height : 0;
 		try {
 			fs.statSync(fullpath);
 		}
 		catch (e) {
-			r = new NMR({aa: 2});
+			r = new NMR();
 			r.render(map_data, function(res) {
 				canvasToFile(res, fullpath, function() {
 					genThumb(fullpath, filepath + height + '.png', height, cb);
