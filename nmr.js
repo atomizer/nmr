@@ -949,7 +949,7 @@ function canvasToFile(ca, where, callback) {
 }
 
 function genThumb(srcpath, dstpath, height, callback) {
-	if (!height) callback();
+	if (!height) { callback(); return; }
 	im.resize({
 		srcPath: srcpath,
 		dstPath: dstpath,
