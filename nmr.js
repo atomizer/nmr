@@ -442,9 +442,15 @@ NMR.prototype.drawObject = function(str) {
 			var zoomed = 1;
 		}
 		mod = +cmods['_xscale'];
-		if (!isNaN(mod)) this.c.scale(mod/100, 1);
+		if (!isNaN(mod)) {
+			mod = +mod ? +mod : 0.1;
+			this.c.scale(mod/100, 1);
+		}
 		mod = +cmods['_yscale'];
-		if (!isNaN(mod)) this.c.scale(1, mod/100);
+		if (!isNaN(mod)) {
+			mod = +mod ? +mod : 0.1;
+			this.c.scale(1, mod/100);
+		}
 		mod = +cmods['xw'];
 		if (!isNaN(mod) && WIDTH[t]) this.c.scale(mod/WIDTH[t], 1);
 		mod = +cmods['yw'];
