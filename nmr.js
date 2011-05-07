@@ -498,8 +498,8 @@ NMR.prototype.drawObject = function(str) {
 		}
 		mod = +cmods['r'];
 		if (!isNaN(mod) && RADIUS[t]) {
-			if (isNaN(xscale)) xscale = mod;
-			if (isNaN(yscale)) yscale = mod;
+			if (isNaN(xscale)) xscale = mod/RADIUS[t];
+			if (isNaN(yscale)) yscale = mod/RADIUS[t];
 		}
 		mod = +cmods['xw'];
 		if (!isNaN(mod) && WIDTH[t] && isNaN(xscale)) xscale = mod/WIDTH[t];
