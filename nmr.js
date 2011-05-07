@@ -392,6 +392,38 @@ NMR.prototype.drawObject = function(str) {
 		}
 	}
 	
+	if (t == 9) { // door
+		var sw = 0, locked = 0, door = 1;
+		if (+params[6]) {  // locked
+			sw = 7.5; locked = 1;
+		}
+		else if (+params[3]) {  // trap
+			sw = 5;	door = 0;
+		}
+		var r = 0;
+		var sx = x, sy = y;
+		x = (+params[4] + +params[7])*24 + 12;
+		y = (+params[5] + +params[8])*24 + 12;
+		if (isNaN(x+y)) x = y = FARAWAY;
+		
+		if (door) {  // door
+			if (+params[2]) {  // horisontal ?
+				if (+params[8]) {  // Y shift
+					r = 3; y += 24;
+				} else r = 1;
+			} else {
+				if (+params[7]) {  // X shift
+					r = 2; x += 24;
+				} else r = 0;
+			}
+			
+			// dirty hacks for thin locked doors
+			if (locked && r > 1 && this.tilesize == 24) {
+				x -= r == 2 ? 1 : 0; y -= r == 3 ? 1 : 0;
+			}
+		}
+	}
+	
 	if (osp[4]) { // custom path
 		var cm = osp[4].split(',');
 		if (cm[1] == 7) {  // circular motion
@@ -692,38 +724,11 @@ NMR.prototype.drawObject = function(str) {
 		this.c.stroke();
 	break;
 	case 9: // door
-		var sw = 0, locked = 0, door = 1;
-		if (+params[6]) {  // locked
-			sw = 7.5; locked = 1;
-		}
-		else if (+params[3]) {  // trap
-			sw = 5;	door = 0;
-		}
-		var r = 0;
-		var dx = (+params[4] + +params[7])*24 + 12;
-		var dy = (+params[5] + +params[8])*24 + 12;
-		if (isNaN(dx+dy)) door = 0;
-		
+		var p = [10.08, 0, 1.92, 24, 10, 0, 4, 10.44];
+		// dirty hacks for thin locked doors
+		if (locked && r > 1 && this.tilesize == 24) p[2] = 1;
+		p = rotate_pts(p, r);
 		if (door) {  // door
-			if (+params[2]) {  // horisontal ?
-				if (+params[8]) {  // Y shift
-					r = 3; dy += 24;
-				} else r = 1;
-			} else {
-				if (+params[7]) {  // X shift
-					r = 2; dx += 24;
-				} else r = 0;
-			}
-			
-			p = [10.08, 0, 1.92, 24, 10, 0, 4, 10.44];
-			// dirty hacks for thin locked doors
-			if (locked && r > 1 && this.tilesize == 24) {
-				p[2] = 1; dx-=(r==2?1:0); dy-=(r==3?1:0);
-			}
-			p = rotate_pts(p, r);
-			
-			this.c.restore(); this.c.save();
-			this.c.translate(this.rnd(dx, 1), this.rnd(dy, 1));
 			this.clr(t, '#797988', '#333');
 			this.rect(p[0], p[1], p[2], p[3], 1, 1, 1);
 			if (locked) {
