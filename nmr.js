@@ -438,6 +438,7 @@ NMR.prototype.drawObject = function(str) {
 		// size mods
 		mod = +cmods['r'];
 		if (!isNaN(mod) && RADIUS[t]) {
+			mod = +mod? +mod : 1e-3;
 			this.zoom(mod/RADIUS[t]);
 			var zoomed = 1;
 		}
@@ -842,7 +843,8 @@ NMR.prototype.render = function(s, cb) {
 		if (mod.length > 2 && !isNaN(+mod[0])) {
 			var id = +mod[0];
 			this.mods[id] = this.mods[id] || {};
-			if (mod[1].match(/^_icon2?$/)) {
+			mod[1] = mod[1].toLowerCase();
+			if (mod[1] == '_icon') {
 				var mi = mod[2];
 				mi = mi.split('^');
 				if (mi.length == 3) {
