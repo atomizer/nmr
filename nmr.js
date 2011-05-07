@@ -161,6 +161,11 @@ NMR.prototype.popzoom = function() {
 NMR.prototype.rnd = function(x, cross) {
 	// round to the pixel's center
 	var mul = this.cz / this.aa;
+	if (this.printable) {
+		lw = (this.tilesize / 24) % 2; // projected line width
+		if (lw > 1) lw -= 2;
+		if (lw <= 0.5 && lw > -0.5) cross = 1;
+	}
 	return (Math.floor(x * mul) + (cross ? 0 : 0.5)) / mul;
 }
 
