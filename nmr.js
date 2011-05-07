@@ -15,9 +15,25 @@ var IMAGE_ROOT = '/home/node/static/images';
 var PI = Math.PI;
 var FARAWAY = -1e4;
 var COLS = 31, ROWS = 23;
-// these two indicate which objects can change their 'r', 'xw', 'yw' properties
+// gold = 0
+// bounceblock = 1
+// launchpad = 2
+// turret = 3
+// floorguard = 4
+// player = 5
+// drone = 6
+// onewayplatform = 7
+// thwump = 8
+// testdoor = 9
+// hominglauncher = 10
+// exit = 11
+// mine = 12
+// initial radius (if applicable)
 var RADIUS = { 0: 6.0, 2: 6.0, 4: 6.0, 5: 10.0, 6: 9.0, 11: 12.0, 12: 4.0 };
-var WIDTH = { 1: 9.6, 8: 9.0 };
+// initial xw, yw (if applicable)
+var WIDTH = { 1: 9.6, 7: 12, 8: 9 };
+// initial _xscale, _yscale
+var SCALE = [6, 19.2, 15, 12, 12, 20, 18, 24, 18, 24, 12, 24, 8];
 // polygons for tiles
 var TILEPOLY = [[],
 	[-1,-1, 1, 1,-1, 1],
@@ -416,10 +432,9 @@ NMR.prototype.drawObject = function(str) {
 					r = 2; x += 24;
 				} else r = 0;
 			}
-			
-			// dirty hacks for thin locked doors
-			if (locked && r > 1 && this.tilesize == 24) {
-				x -= r == 2 ? 1 : 0; y -= r == 3 ? 1 : 0;
+			if (locked) {
+				x -= +(r == 2);
+				y -= +(r == 3);
 			}
 		}
 	}
@@ -468,26 +483,28 @@ NMR.prototype.drawObject = function(str) {
 			this.c.translate(FARAWAY, FARAWAY);
 		}
 		// size mods
-		mod = +cmods['r'];
-		if (!isNaN(mod) && RADIUS[t]) {
-			mod = +mod? +mod : 1e-3;
-			this.zoom(mod/RADIUS[t]);
-			var zoomed = 1;
-		}
+		var xscale = 0, yscale = 0;
 		mod = +cmods['_xscale'];
 		if (!isNaN(mod)) {
 			mod = +mod ? +mod : 0.1;
-			this.c.scale(mod/100, 1);
+			xscale = mod/SCALE[t];
 		}
 		mod = +cmods['_yscale'];
 		if (!isNaN(mod)) {
 			mod = +mod ? +mod : 0.1;
-			this.c.scale(1, mod/100);
+			yscale = mod/SCALE[t];
+		}
+		mod = +cmods['r'];
+		if (!isNaN(mod) && RADIUS[t]) {
+			mod = +mod? +mod : 1e-3;
+			if (!xscale) xscale = mod;
+			if (!yscale) yscale = mod;
 		}
 		mod = +cmods['xw'];
-		if (!isNaN(mod) && WIDTH[t]) this.c.scale(mod/WIDTH[t], 1);
+		if (!isNaN(mod) && WIDTH[t] && !xscale) xscale = mod/WIDTH[t];
 		mod = +cmods['yw'];
-		if (!isNaN(mod) && WIDTH[t]) this.c.scale(1, mod/WIDTH[t]);
+		if (!isNaN(mod) && WIDTH[t] && !yscale) yscale = mod/WIDTH[t];
+		this.c.scale(xscale, yscale);
 		// alpha
 		mod = cmods['_alpha'];
 		if (!isNaN(mod)) this.c.globalAlpha = mod/100;
