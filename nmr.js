@@ -841,7 +841,6 @@ NMR.prototype.render = function(s, cb) {
 		this.title = s[0];
 		this.author = s[1];
 		this.type = s[2];
-		this.nrt = s[4];
 		s = s[3];
 	}
 	s = s.split('|');
@@ -853,6 +852,7 @@ NMR.prototype.render = function(s, cb) {
 	this.fg = s[3];
 	iq.push([this.bg, 0]);
 	iq.push([this.fg]);
+	this.nrt = s[4];
 	
 	var ms = [];
 	if (s[5]) { // object mod
