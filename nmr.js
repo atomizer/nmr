@@ -490,17 +490,14 @@ NMR.prototype.drawObject = function(str) {
 		var xscale = 0, yscale = 0;
 		mod = +cmods['_xscale'];
 		if (!isNaN(mod)) {
-			mod = +mod ? +mod : 0.1;
 			xscale = mod/SCALE[t];
 		}
 		mod = +cmods['_yscale'];
 		if (!isNaN(mod)) {
-			mod = +mod ? +mod : 0.1;
 			yscale = mod/SCALE[t];
 		}
 		mod = +cmods['r'];
 		if (!isNaN(mod) && RADIUS[t]) {
-			mod = +mod? +mod : 1e-3;
 			if (!xscale) xscale = mod;
 			if (!yscale) yscale = mod;
 		}
@@ -508,6 +505,8 @@ NMR.prototype.drawObject = function(str) {
 		if (!isNaN(mod) && WIDTH[t] && !xscale) xscale = mod/WIDTH[t];
 		mod = +cmods['yw'];
 		if (!isNaN(mod) && WIDTH[t] && !yscale) yscale = mod/WIDTH[t];
+		if (!xscale) xscale = 0.01;
+		if (!yscale) yscale = 0.01;
 		this.c.scale(xscale, yscale);
 		// alpha
 		mod = cmods['_alpha'];
