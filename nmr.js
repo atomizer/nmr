@@ -483,7 +483,6 @@ NMR.prototype.drawObject = function(str) {
 		// icon mod
 		mod = cmods['_icon'];
 		if (mod) {
-			if (zoomed) this.popzoom();
 			this.drawImage(mod.img, mod.x, mod.y);
 			this.c.translate(FARAWAY, FARAWAY);
 		}
@@ -819,8 +818,6 @@ NMR.prototype.drawObject = function(str) {
 		this.c.font = '16px sans-serif';
 		this.c.fillText(type,0,0);
 	}
-	// don't forget to pop ur zooms
-	if (zoomed) this.popzoom();
 	this.c.restore();
 	return true;
 }
