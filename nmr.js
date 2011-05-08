@@ -302,7 +302,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 			if (--that.pending == 0) cb();
 			return;
 		}
-		fs.writeFile(filename, body, function() {
+		fs.writeFile(filename, body, 'binary', function() {
 			console.log('#', url, '=>', filename);
 			expandImages();
 		});
