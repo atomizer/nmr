@@ -987,7 +987,7 @@ function canvasToFile(ca, where, callback) {
 }
 
 function genThumb(srcpath, dstpath, height, cb) {
-	if (!height) { callback(); return; }
+	if (!height) { cb(); return; }
 	var img = new Image();
 	img.onload = function () {
 		var ca = new Canvas(img.width * height/img.height, height);
