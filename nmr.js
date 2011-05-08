@@ -295,7 +295,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 		expandImages();
 		return;
 	}
-	request({uri: url}, function(e, res, body) {
+	request({uri: url, encoding: 'binary'}, function(e, res, body) {
 		if (e || res.statusCode != 200) {
 			console.log('!! request', res.statusCode, url,
 				e && e.message ? e.message : '');
