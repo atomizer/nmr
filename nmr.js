@@ -2,7 +2,7 @@ var VERSION = '016n';
 
 var fs = require('fs'),
 	path = require('path'),
-	im = require('imagemagick'),
+	request = require('request'),
 	Canvas = require('canvas'),
 	Image = Canvas.Image;
 
@@ -277,7 +277,7 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
 	var that = this;
-	var filename = path.join(IMAGE_ROOT, hashed(url) + '.png');
+	var filename = path.join(IMAGE_ROOT, hashed(url) + '.' + m[2]);
 	
 	function expandImages() {
 		var img = new Image();
@@ -291,22 +291,21 @@ NMR.prototype.prepImage = function(urlf, blend, cb) {
 		}
 		img.src = filename;
 	}
-	var found = 1;
-	try { fs.statSync(filename); }
-	catch (e) { found = 0; }
-	if (found) {
+	if (path.existsSync(filename)) {
 		expandImages();
 		return;
 	}
-	im.convert([url, '-limit', 'memory', '1mb', filename],
-	function(e, stdout, stderr){
-		if (e) {
-			console.log('!! convert', url, 'error:', e.message);
+	request({uri: url}, function(e, res, body) {
+		if (e || res.statusCode != 200) {
+			console.log('!! request', res.statusCode, url,
+				e && e.message ? e.message : '');
 			if (--that.pending == 0) cb();
 			return;
 		}
-		console.log('#', url, '=>', filename);
-		expandImages();
+		fs.writeFile(filename, body, function() {
+			console.log('#', url, '=>', filename);
+			expandImages();
+		});
 	});
 }
 
@@ -987,22 +986,24 @@ function canvasToFile(ca, where, callback) {
 	}
 }
 
-function genThumb(srcpath, dstpath, height, callback) {
+function genThumb(srcpath, dstpath, height, cb) {
 	if (!height) { callback(); return; }
-	im.resize({
-		srcPath: srcpath,
-		dstPath: dstpath,
-		width: height*2,
-		height: height,
-		format: 'png'
-	}, function(e, stdout, stderr){
-		if (e) {
-			console.log('!! failed to resize', srcpath, 'error:', e);
-		} else {
+	var img = new Image();
+	img.onload = function () {
+		var ca = new Canvas(img.width * height/img.height, height);
+		var c = ca.getContext('2d');
+		c.patternQuality = 'best';
+		c.drawImage(img, 0, 0, ca.width, ca.height);
+		canvasToFile(ca, dstpath, function() {
 			console.log('T', srcpath, '-->', dstpath);
-		}
-		callback();
-	});
+			cb();
+		});
+	}
+	img.onerror = function (e) {
+		console.log('!! image.onerror', srcpath, e.message)
+		cb();
+	}
+	img.src = srcpath;
 }
 
 exports.renderToFile = function(map_data, height, root, map_id, cb) {
@@ -1017,20 +1018,14 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 		});
 	} else { // render default, generate thumbnail if needed
 		height = height < 600 ? height : 0;
-		try {
-			fs.statSync(fullpath);
-		}
-		catch (e) {
+		if (!path.existsSync(fullpath)) {
 			r = new NMR();
 			r.render(map_data, function(res) {
 				canvasToFile(res, fullpath, function() {
 					genThumb(fullpath, filepath + height + '.png', height, cb);
 				});
 			});
-			return;
-		}
-		// if full is already there
-		genThumb(fullpath, filepath + height + '.png', height, cb);
+		} else genThumb(fullpath, filepath + height + '.png', height, cb);
 	}
 }
 
