@@ -760,7 +760,7 @@ NMR.prototype.drawObject = function(str) {
 		}
 		if (sw) {  // key
 			this.c.restore(); this.c.save();
-			this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
+			this.c.translate(this.rnd(sx, 1), this.rnd(sy, 1));
 			this.clr(null, '#acacb5', '#5f5f6b');
 			this.rect(0, 0, sw, sw, 1, 1, 1);
 			this.clr(null, '#666', '#000');
