@@ -509,7 +509,12 @@ NMR.prototype.drawObject = function(str) {
 		if (isNaN(yscale)) yscale = 1;
 		if (xscale == 0) xscale = 0.01;
 		if (yscale == 0) yscale = 0.01;
-		this.c.scale(xscale, yscale);
+		if (xscale != 1 || yscale != 1) {
+			if (xscale == yscale) {
+				var zoomed = 1;
+				this.zoom(xscale);
+			} else this.c.scale(xscale, yscale);
+		}
 		// alpha
 		mod = cmods['_alpha'];
 		if (!isNaN(mod)) this.c.globalAlpha = mod/100;
@@ -819,6 +824,7 @@ NMR.prototype.drawObject = function(str) {
 		this.c.font = '16px sans-serif';
 		this.c.fillText(type,0,0);
 	}
+	if (zoomed) this.popzoom();
 	this.c.restore();
 	return true;
 }
