@@ -997,6 +997,7 @@ function genThumb(srcpath, dstpath, height, cb) {
 			console.log('T', srcpath, '-->', dstpath);
 			cb();
 		});
+		c = ca = null;
 	}
 	img.onerror = function (e) {
 		console.log('!! image.onerror', srcpath, e.message)
@@ -1015,6 +1016,7 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 		r.render(map_data, function(res) {
 			canvasToFile(res, filepath + height + '.png', cb);
 		});
+		r = null;
 	} else { // render default, generate thumbnail if needed
 		height = height < 600 ? height : 0;
 		if (!path.existsSync(fullpath)) {
@@ -1024,6 +1026,7 @@ exports.renderToFile = function(map_data, height, root, map_id, cb) {
 					genThumb(fullpath, filepath + height + '.png', height, cb);
 				});
 			});
+			r = null;
 		} else genThumb(fullpath, filepath + height + '.png', height, cb);
 	}
 }
