@@ -125,11 +125,10 @@ var NMR = exports.NMR = function(options) {
 	this.rw = (COLS + 2) * this.tilesize;  // real dimensions
 	this.rh = (ROWS + 2) * this.tilesize;
 	this.ca = new Canvas(this.rw * this.aa, this.rh * this.aa);
-	var c = this.ca.getContext('2d');
-	c.lineCap = 'square';
-	c.antialias = 'gray';
-	c.patternQuality = 'best';
-	this.c = c;
+	this.c = this.ca.getContext('2d');
+	this.c.lineCap = 'square';
+	this.c.antialias = 'gray';
+	this.c.patternQuality = 'best';
 }
 
 // ========================================================
