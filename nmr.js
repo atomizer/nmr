@@ -761,6 +761,7 @@ NMR.prototype.drawObject = function(str) {
 			}
 		}
 		if (sw) {  // key
+			if (zoomed) { this.popzoom(); zoomed = 0; }
 			this.c.restore(); this.c.save();
 			this.c.translate(this.rnd(sx, 1), this.rnd(sy, 1));
 			this.clr(null, '#acacb5', '#5f5f6b');
@@ -784,6 +785,7 @@ NMR.prototype.drawObject = function(str) {
 		// exit key
 		x = +params[2]; y = +params[3];
 		if (isNaN(x+y)) x = y = FARAWAY;
+		if (zoomed) { this.popzoom(); zoomed = 0; }
 		this.c.restore(); this.c.save();
 		this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
 		this.clr(null, '#b3b3bb', '#585863');
