@@ -814,14 +814,6 @@ NMR.prototype.drawObject = function(str) {
 		this.c.stroke();
 		this.circle(0, 0, 2.4, 1, 1);
 	break;
-	default: // unhandled object type
-		this.c.fillStyle = 'rgba(255,255,255,0.5)';
-		this.rect(0,0,18,18,1,1);
-		this.c.fillStyle = '#000';
-		this.c.textAlign = 'center';
-		this.c.textBaseline = 'middle';
-		this.c.font = '16px sans-serif';
-		this.c.fillText(type,0,0);
 	}
 	if (zoomed) this.popzoom();
 	this.c.restore();
@@ -901,6 +893,16 @@ NMR.prototype._render = function(s, cb) {
 	
 	var t = s[0];  // tiles
 	var o = s[1].split('!');  // objects
+	
+	// elliminate double-placed objects (slow!)
+	// all the dupes will be counted properly
+	var STUB = '42^,', oi;
+	for (var i = o.length-1; i > 0; i--) {
+		if ((oi = o[i]) == STUB) continue;
+		for (var j = 0; j < i; j++) {
+			if (oi == o[j]) o[j] = STUB;
+		}
+	}
 	
 	// paint background (walls)
 	this.clr(null, '#ccc');
