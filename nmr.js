@@ -992,11 +992,15 @@ function genThumb(srcpath, dstpath, height, cb) {
 	if (!height) { cb(); return; }
 	var img = new Image();
 	img.onload = function () {
-		var ca = new Canvas(img.width * height/img.height, height);
+		var ca = new Canvas(img.width, img.height);
 		var c = ca.getContext('2d');
-		c.patternQuality = 'best';
 		c.drawImage(img, 0, 0, ca.width, ca.height);
-		canvasToFile(ca, dstpath, function() {
+		require('./stackblur').stackBlurCanvasRGB(ca, 0, 0, img.width, img.height, img.height / height);
+		c2 = new Canvas(img.width * height/img.height, height);
+		var c = c2.getContext('2d');
+		c.patternQuality = 'best';
+		c.drawImage(ca, 0, 0, c2.width, c2.height);
+		canvasToFile(c2, dstpath, function() {
 			console.log('T', srcpath, '-->', dstpath);
 			cb();
 		});
