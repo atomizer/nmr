@@ -995,7 +995,7 @@ function genThumb(srcpath, dstpath, height, cb) {
 		var ca = new Canvas(img.width, img.height);
 		var c = ca.getContext('2d');
 		c.drawImage(img, 0, 0, ca.width, ca.height);
-		require('./stackblur').stackBlurCanvasRGB(ca, 0, 0, img.width, img.height, img.height / height);
+		require('./stackblur').stackBlurCanvasRGB(ca, 0, 0, img.width, img.height, img.height / height - 1);
 		c2 = new Canvas(img.width * height/img.height, height);
 		var c = c2.getContext('2d');
 		c.patternQuality = 'best';
