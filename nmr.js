@@ -887,7 +887,7 @@ NMR.prototype.render = function(s, cb) {
 	this.pending = iq.length;
 	var that = this;
 	for (var i = 0; i < iq.length; i++)
-		this.prepImage(iq[i][0], iq[i][1], function() {that._render.apply(that, [s, cb])} );
+		this.prepImage(iq[i][0], iq[i][1], function() {that._render(s, cb)} );
 	if (this.pending == 0) { // there were no valid images in queue
 		this._render(s, cb);
 	}
