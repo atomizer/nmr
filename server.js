@@ -6,15 +6,16 @@ MAP_URI = 'http://www.nmaps.net/ID/data'
 
 var utils = require('./utils');
 var ROOT = '/home/node/static';
+var lock = {};
 
 var s = http.createServer();
 
-function tryToServe(req, res, second_try) {
+function tryToServe(req, res) {
 	var ip = req.connection.remoteAddress;
 	if (req.method != 'GET') {
-		res.writeHead(400, {'Content-Type': 'text/plain'});
-		res.end('Bad Request');
-		console.log(400, ip, req.method)
+		res.writeHead(405, {'Allow': 'GET'});
+		res.end();
+		console.log('405', ip, req.method)
 	}
 	// rewriting
 	req.url = req.url.replace(/^\/(\d+)$/, '/$1-600');
@@ -35,19 +36,28 @@ function tryToServe(req, res, second_try) {
 	.otherwise(function(err) {
 		var m = req.url.match(/^\/(\d+)-(\d+)/);
 		var height, map_id;
-		if (second_try || !m || !(map_id = +m[1]) || ((height = +m[2]) > 2400) ) {
+		if (!m || !(map_id = +m[1]) || ((height = +m[2]) > 2400) ) {
 			res.writeHead(404, {'Content-Type': 'text/plain'});
 			res.end('there is no such thing, sorry.');
 			console.log('404', ip, req.url);
 		} else {
+			if (lock[map_id]) {
+				res.writeHead(503);
+				res.end();
+				return;
+			}
+			lock[map_id] = map_id;
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 				if (!e && mres.statusCode == 200) {
 					utils.renderToFile(body, height, ROOT, map_id, function() {
-						tryToServe(req, res, true);
+						res.writeHead(302, {'Location': '/' + map_id + '-' + height});
+						res.end();
+						delete lock[map_id];
 					});
 				} else {
-					res.writeHead(mres.statusCode, {'Content-Type': 'text/plain'});
+					res.writeHead(404, {'Content-Type': 'text/plain'});
 					res.end('NUMA returned ' + mres.statusCode + (e ? '\nError: ' + e : ''));
+					delete lock[map_id];
 				}
 			});
 		}
