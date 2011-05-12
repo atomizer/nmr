@@ -36,7 +36,7 @@ var genThumb = exports.genThumb = function(srcpath, dstpath, height, cb) {
 		blur.stackBlurCanvasRGB(ca, 0, 0, img.width, img.height, img.height / height - 1);
 		c2 = new Canvas(img.width * height/img.height, height);
 		var c = c2.getContext('2d');
-		c.patternQuality = 'best';
+		c.patternQuality = 'fast';
 		c.drawImage(ca, 0, 0, c2.width, c2.height);
 		canvasToFile(c2, dstpath, function() {
 			console.log('T', srcpath, '-->', dstpath);
