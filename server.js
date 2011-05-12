@@ -4,7 +4,7 @@ var request = require('request')
 
 MAP_URI = 'http://www.nmaps.net/ID/data'
 
-var nmr = require('./nmr');
+var utils = require('./utils');
 var ROOT = '/home/node/static';
 
 var s = http.createServer();
@@ -42,7 +42,7 @@ function tryToServe(req, res, second_try) {
 		} else {
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 				if (!e && mres.statusCode == 200) {
-					nmr.renderToFile(body, height, ROOT, map_id, function() {
+					utils.renderToFile(body, height, ROOT, map_id, function() {
 						tryToServe(req, res, true);
 					});
 				} else {

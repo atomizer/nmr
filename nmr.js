@@ -106,47 +106,49 @@ function hashed(s) {
 }
 
 // ========================================================
-// ============= init
+// ============= nmr constructor
 
-var NMR = exports.NMR = function(options) {
-	options = options || {};
-	this.tilesize = +options['tilesize'] || 24;
-	this.printable = options['printable'] ? 1 : 0; // always 1px lines or not
-	this.aa = +options['aa'] || 1; // antialiasing multiplier
-	
-	this.zooms = [];
-	this.cz = 1; // current zoom (for size mods); x_real = x / cz
-	
-	this.mods = {};
-	
-	this.pending = 0; // how many images are not loaded yet
-	this.images = {};
-	
-	this.rw = (COLS + 2) * this.tilesize;  // real dimensions
-	this.rh = (ROWS + 2) * this.tilesize;
-	this.ca = new Canvas(this.rw * this.aa, this.rh * this.aa);
-	this.c = this.ca.getContext('2d');
-	this.c.lineCap = 'square';
-	this.c.antialias = 'gray';
-	this.c.patternQuality = 'best';
-}
+exports.NMR = function(options) {
+
+var self = this;
+
+options = options || {};
+this.tilesize = +options['tilesize'] || 24;
+this.printable = options['printable'] ? 1 : 0; // always 1px lines or not
+this.aa = +options['aa'] || 1; // antialiasing multiplier
+
+this.zooms = [];
+this.cz = 1; // current zoom (for size mods); x_real = x / cz
+
+this.mods = {};
+
+this.pending = 0; // how many images are not loaded yet
+this.images = {};
+
+this.rw = (COLS + 2) * this.tilesize;  // real dimensions
+this.rh = (ROWS + 2) * this.tilesize;
+this.ca = new Canvas(this.rw * this.aa, this.rh * this.aa);
+this.c = this.ca.getContext('2d');
+this.c.lineCap = 'square';
+this.c.antialias = 'gray';
+this.c.patternQuality = 'best';
 
 // ========================================================
 // ============= zooming
 
-NMR.prototype.zoom = function(factor) {
-	this.zooms.push(this.cz);
-	this.c.save();
-	this.c.scale(factor, factor);
-	this.cz *= factor;
-	this.c.lineWidth = this.printable ? 1 : this.aa/this.cz;
+this.zoom = function(factor) {
+	self.zooms.push(self.cz);
+	self.c.save();
+	self.c.scale(factor, factor);
+	self.cz *= factor;
+	self.c.lineWidth = self.printable ? 1 : self.aa/self.cz;
 }
 
-NMR.prototype.popzoom = function() {
-	if (this.zooms.length) {
-		this.c.restore();
-		var pz = this.cz;
-		this.cz = this.zooms.pop();
+this.popzoom = function() {
+	if (self.zooms.length) {
+		self.c.restore();
+		var pz = self.cz;
+		self.cz = self.zooms.pop();
 		return pz;
 	} else {
 		console.log('POPZOOM!!!11');
@@ -157,148 +159,153 @@ NMR.prototype.popzoom = function() {
 // ========================================================
 // ============= drawing
 
-NMR.prototype.rnd = function(x, cross) {
+this.rnd = function(x, cross) {
 	// round to the pixel's center
-	var mul = this.cz / this.aa;
-	if (this.printable) {
-		lw = (this.tilesize / 24) % 2; // projected line width
+	var mul = self.cz / self.aa;
+	if (self.printable) {
+		lw = (self.tilesize / 24) % 2; // projected line width
 		if (lw > 1) lw -= 2;
 		if (lw <= 0.5 && lw > -0.5) cross = 1;
 	}
 	return (Math.floor(x * mul) + (cross ? 0 : 0.5)) / mul;
 }
 
-NMR.prototype.clr = function(type, fill, stroke) {
+this.clr = function(type, fill, stroke) {
 	// set stroke and fill colors in one line, applying transformation if necessary
 	var t;
-	if (type != null && this.mods[type+3] && (t = this.mods[type+3]['_color'])) {
+	if (type != null && self.mods[type+3] && (t = self.mods[type+3]['_color'])) {
 		if (fill) {
-			this.c.fillStyle = fill;
-			fill = clrTrans(this.c.fillStyle, t);
+			self.c.fillStyle = fill;
+			fill = clrTrans(self.c.fillStyle, t);
 		}
 		if (stroke) {
-			this.c.strokeStyle = stroke;
-			stroke = clrTrans(this.c.strokeStyle, t);
+			self.c.strokeStyle = stroke;
+			stroke = clrTrans(self.c.strokeStyle, t);
 		}
 	}
-	if (fill) this.c.fillStyle = fill;
-	if (stroke) this.c.strokeStyle = stroke;
+	if (fill) self.c.fillStyle = fill;
+	if (stroke) self.c.strokeStyle = stroke;
 }
 
-NMR.prototype.line = function(x1, y1, x2, y2) {
+this.line = function(x1, y1, x2, y2) {
 	// sharp 1px line
 	if (!isNaN(x2 + y2)) {
-		this.c.moveTo(this.rnd(x1), this.rnd(y1));
-		this.c.lineTo(this.rnd(x2), this.rnd(y2));
+		self.c.moveTo(self.rnd(x1), self.rnd(y1));
+		self.c.lineTo(self.rnd(x2), self.rnd(y2));
 	} else {
-		this.c.lineTo(this.rnd(x1), this.rnd(y1));
+		self.c.lineTo(self.rnd(x1), self.rnd(y1));
 	}
 }
 
-NMR.prototype.rect = function(x, y, w, h, centered, fill, stroke, noclip) {
+this.rect = function(x, y, w, h, centered, fill, stroke, noclip) {
 	if (centered) { x = x - w / 2; y = y - h / 2; }
-	if (fill || stroke) this.c.beginPath();
-	this.c.rect(x, y, w, h);
-	if (fill) this.c.fill();
+	if (!fill && !stroke) return;
+	self.c.beginPath();
+	self.c.rect(x, y, w, h);
+	if (fill) self.c.fill();
 	if (stroke) {
-		this.c.beginPath();
-		this.line(x, y, x+w, y);
-		this.line(x+w, y+h);
-		this.line(x, y+h);
-		this.c.closePath();
-		this.c.stroke();
+		self.c.beginPath();
+		self.line(x, y, x+w, y);
+		self.line(x+w, y+h);
+		self.line(x, y+h);
+		self.c.closePath();
+		self.c.stroke();
 	}
 }
 
-NMR.prototype.circle = function(x, y, r, fill, stroke) {
-	if (fill || stroke) this.c.beginPath();
-	this.c.arc(x, y, r, 0, PI*2, false);
-	if (fill) this.c.fill();
-	if (stroke) this.c.stroke();
+this.circle = function(x, y, r, fill, stroke) {
+	if (!fill && !stroke) return;
+	self.c.beginPath();
+	self.c.arc(x, y, r, 0, PI*2, false);
+	if (fill) self.c.fill();
+	if (stroke) self.c.stroke();
 }
 
-NMR.prototype.poly = function(a, fill, stroke, noclose) {
+this.poly = function(a, fill, stroke, noclose) {
 	// polygon from array [x1, y1, x2, y2, ...]
 	if (!a || a.length < 4) return;
-	if (fill || stroke) this.c.beginPath();
-	this.c.moveTo(a[0], a[1]);
+	if (!fill && !stroke) return;
+	self.c.beginPath();
+	self.c.moveTo(a[0], a[1]);
 	for (var i = 2, l = a.length; i < l; i += 2) {
-		this.c.lineTo(a[i], a[i+1]);
+		self.c.lineTo(a[i], a[i+1]);
 	}
-	if (!noclose) this.c.closePath();
-	if (fill) this.c.fill();
-	if (stroke) this.c.stroke();
+	if (!noclose) self.c.closePath();
+	if (fill) self.c.fill();
+	if (stroke) self.c.stroke();
 }
 
-NMR.prototype.regularpoly = function(r, n, fill, stroke) {
+this.regularpoly = function(r, n, fill, stroke) {
 	// regular polygon
 	// used only for drones - do we really need it?
-	if (fill || stroke) this.c.beginPath();
+	if (!fill && !stroke) return;
+	self.c.beginPath();
 	var a = PI*2 / n;
 	var R = r / Math.cos(a/2);
-	this.c.save();
-	this.c.rotate(-a/2);
-	this.c.moveTo(R, 0);
+	self.c.save();
+	self.c.rotate(-a/2);
+	self.c.moveTo(R, 0);
 	for (var i = 0; i < n - 1; i++) {
-		this.c.rotate(a);
-		this.c.lineTo(R, 0);
+		self.c.rotate(a);
+		self.c.lineTo(R, 0);
 	}
-	this.c.closePath();
-	this.c.restore();
-	if (fill) this.c.fill();
-	if (stroke) this.c.stroke();
+	self.c.closePath();
+	self.c.restore();
+	if (fill) self.c.fill();
+	if (stroke) self.c.stroke();
 }
 
-NMR.prototype.turret = function(type, r) {
+this.turret = function(type, r) {
 	// 4 arcs around gauss & rocket
-	this.clr(type, '', '#000');
+	self.clr(type, '', '#000');
 	for (var i = 0; i < 6; i += PI/2) {
-		this.c.beginPath();
-		this.c.arc(0, 0, r, i + 0.2, PI/2 + i - 0.2, false);
-		this.c.stroke();
+		self.c.beginPath();
+		self.c.arc(0, 0, r, i + 0.2, PI/2 + i - 0.2, false);
+		self.c.stroke();
 	}
 }
 
 // ========================================================
 // ============= handling external images
 
-NMR.prototype.prepImage = function(urlf, blend, cb) {
+this.prepImage = function(urlf, blend, cb) {
 	var m, url;
 	var url_re = /^(http:\/\/.+\.(gif|jpg|png))(?:\?(.+))?$/;
 	
-	if (!urlf || this.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) {
-		if (--this.pending == 0) cb();
+	if (!urlf || self.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) {
+		if (--self.pending == 0) cb();
 		return;
 	}
-	this.images[urlf] = {};
+	self.images[urlf] = {};
 	blend = blend || +m[3] || 0;
 	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
-	var that = this;
 	var filename = path.join(IMAGE_ROOT, hashed(url) + '.' + m[2]);
 	
 	function expandImages() {
 		var img = new Image();
 		img.onload = function () {
-			that.images[urlf] = { data: img, blend: blend }
-			if (--that.pending == 0) cb();
+			self.images[urlf] = { data: img, blend: blend }
+			if (--self.pending == 0) cb();
 		}
 		img.onerror = function (e) {
 			console.log('!! image.onerror', filename, e.message)
-			if (--that.pending == 0) cb();
+			if (--self.pending == 0) cb();
 		}
 		img.src = filename;
 	}
+	
 	if (path.existsSync(filename)) {
 		expandImages();
 		return;
 	}
+	
 	request({uri: url, encoding: 'binary'}, function(e, res, body) {
 		if (e || res.statusCode != 200) {
 			console.log('!! request', res.statusCode, url,
 				e && e.message ? e.message : '');
-			if (--that.pending == 0) cb();
+			if (--self.pending == 0) cb();
 			return;
 		}
 		fs.writeFileSync(filename, body, 'binary');
@@ -312,8 +319,8 @@ var blend_to_composite = ['over', 'over', 'over', 'multiply', 'screen',
 	'invert', 'alpha', 'erase', 'overlay', 'hard-light']
 	// TODO: implement add,substract,alpha,erase
 
-NMR.prototype.drawImage = function(isrc, x, y) {
-	var i = this.images[isrc];
+this.drawImage = function(isrc, x, y) {
+	var i = self.images[isrc];
 	if (!i || !i.data) return;
 	x = x || 0; y = y || 0;
 	try {
@@ -325,14 +332,14 @@ NMR.prototype.drawImage = function(isrc, x, y) {
 			ctx.globalCompositeOperation = 'source-in';
 			ctx.fillStyle = '#fff';
 			ctx.fillRect(0, 0, ca.width, ca.height);
-			this.c.globalCompositeOperation = 'difference';
-			this.c.drawImage(ca, x, y);
+			self.c.globalCompositeOperation = 'difference';
+			self.c.drawImage(ca, x, y);
 		break;
 		default:
-			this.c.globalCompositeOperation = blend_to_composite[i.blend];
-			this.c.drawImage(i.data, x, y);
+			self.c.globalCompositeOperation = blend_to_composite[i.blend];
+			self.c.drawImage(i.data, x, y);
 		}
-		this.c.globalCompositeOperation = 'over';
+		self.c.globalCompositeOperation = 'over';
 	}
 	catch (e) {
 		console.log('!! drawImage', i.data.src, ':', e.message);
@@ -342,35 +349,36 @@ NMR.prototype.drawImage = function(isrc, x, y) {
 // ========================================================
 // ============= serious stuff
 
-NMR.prototype.addTile = function(x, y, type) {
+this.addTile = function(x, y, type) {
 	var sx = [1,-1,-1, 1], sy = [1, 1,-1,-1];
-	this.c.translate(x * 2 + 3, y * 2 + 3);
+	self.c.translate(x * 2 + 3, y * 2 + 3);
 	// clamp type to [0..33], like n does.
 	// though tiles > 33 behave oddly, they show up as 33, and we should obey.
 	type = (type < 0 ? 0 : (type > 33 ? 33 : type));
 	if (type == 0) {  // empty
 		return;
 	} else if (type == 1) {  // full
-		this.c.rect(-1,-1, 2, 2);
+		self.c.rect(-1,-1, 2, 2);
 		return;
 	} else type += 2;
 	var T = Math.floor(type / 4), r = type % 4;
-	if (T == 8) this.c.rotate(-r * PI/2); else this.c.scale(sx[r], sy[r]);
+	if (T == 8) self.c.rotate(-r * PI/2); else self.c.scale(sx[r], sy[r]);
 	
 	if (T == 2 || T == 3) {  // round things
-		this.c.moveTo(-1, 1);
-		if (T == 2) this.c.arc( 1,-1, 2, PI/2, PI, false);
-		if (T == 3) this.c.arc(-1, 1, 2,-PI/2, 0, false);
-		this.c.closePath();
+		self.c.moveTo(-1, 1);
+		if (T == 2) self.c.arc( 1,-1, 2, PI/2, PI, false);
+		if (T == 3) self.c.arc(-1, 1, 2,-PI/2, 0, false);
+		self.c.closePath();
 	} else {  // everything else
-		this.poly(TILEPOLY[T]);
+		self.poly(TILEPOLY[T]);
 	}
 }
 
-NMR.prototype.drawObject = function(str) {
+this.drawObject = function(str) {
 	var t;
 	var osp = str.split('^');
-	if (osp.length < 2 || isNaN(t = +osp[0]) || t < 0) return false;
+	if (osp.length < 2 || isNaN(t = +osp[0])) return false;
+	if (t == -7) return true; // dupe stub
 	
 	var params = osp[1].split(',');
 	if (osp[2]) params = params.concat(osp[2].split(','));
@@ -401,7 +409,7 @@ NMR.prototype.drawObject = function(str) {
 		var gy = Math.floor(y / 24) * 24;
 		var wtype = +params[3] || 0;
 		var r = RADIUS[4];
-		if (this.mods[7] && !isNaN(this.mods[7]['r'])) r = +this.mods[7]['r'];
+		if (self.mods[7] && !isNaN(self.mods[7]['r'])) r = +self.mods[7]['r'];
 		switch(wtype) {
 			case 1: y = gy + r; break;
 			case 2: x = gx + r; break;
@@ -465,23 +473,19 @@ NMR.prototype.drawObject = function(str) {
 		}
 	}
 	
-	////////// THE CODE ABOVE THIS LINE IS SAFE
-	// maybe there is a point to make it another pure function,
-	// because this function is HUMONGOUS
-	
-	this.c.save();
-	this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
+	self.c.save();
+	self.c.translate(self.rnd(x, 1), self.rnd(y, 1));
 	
 	// --------- apply mods, if any
 	
-	var cmods = this.mods[t == 6 ? dt : t + 3];
+	var cmods = self.mods[t == 6 ? dt : t + 3];
 	var mod;
 	if (cmods) {
 		// icon mod
 		mod = cmods['_icon'];
 		if (mod) {
-			this.drawImage(mod.img, mod.x, mod.y);
-			this.c.translate(FARAWAY, FARAWAY);
+			self.drawImage(mod.img, mod.x, mod.y);
+			self.c.translate(FARAWAY, FARAWAY);
 		}
 		// size mods
 		var xscale, yscale;
@@ -509,30 +513,30 @@ NMR.prototype.drawObject = function(str) {
 		if (xscale != 1 || yscale != 1) {
 			if (xscale == yscale) {
 				var zoomed = 1;
-				this.zoom(xscale);
-			} else this.c.scale(xscale, yscale);
+				self.zoom(xscale);
+			} else self.c.scale(xscale, yscale);
 		}
 		// alpha
 		mod = cmods['_alpha'];
-		if (!isNaN(mod)) this.c.globalAlpha = mod/100;
+		if (!isNaN(mod)) self.c.globalAlpha = mod/100;
 	}
 	
 	// --------- render object
 	
 	switch (t) {
 	case 0: // gold
-		this.clr(t, '#c90', '#a67c00');
-		this.rect(0, 0, 6, 6, 1, 1, 1);
-		this.clr(t, '#dbbd11');
-		this.rect(0, 0, 3.6, 3.6, 1, 1);
-		this.clr(t, '#e2e200');
-		this.rect(0, 0, 1.8, 1.8, 1, 1);
-		this.clr(t, '#ffc');
-		this.rect(0.6, -2.1, 1.5, 1.5, 0, 1);
+		self.clr(t, '#c90', '#a67c00');
+		self.rect(0, 0, 6, 6, 1, 1, 1);
+		self.clr(t, '#dbbd11');
+		self.rect(0, 0, 3.6, 3.6, 1, 1);
+		self.clr(t, '#e2e200');
+		self.rect(0, 0, 1.8, 1.8, 1, 1);
+		self.clr(t, '#ffc');
+		self.rect(0.6, -2.1, 1.5, 1.5, 0, 1);
 	break;
 	case 1: // bounceblock
-		this.clr(t, '#ccc', '#666');
-		this.rect(0, 0, 19.2, 19.2, 1, 1, 1);
+		self.clr(t, '#ccc', '#666');
+		self.rect(0, 0, 19.2, 19.2, 1, 1, 1);
 	break;
 	case 2: // launchpad
 		var p = [-4.35, 0, -1.8, -5.1, 1.8, -5.1, 4.8, 0, 0, -2.5, 15, 5];
@@ -546,43 +550,43 @@ NMR.prototype.drawObject = function(str) {
 			r = r * 2 / PI - 0.5;
 			r = Math.round(r);
 			r = (r + 0.5) * PI / 2;
-			this.c.rotate(r);
+			self.c.rotate(r);
 		}
-		this.clr(t, '#b0b0b9', '#4b4b54');
-		this.rect(p[8], p[9], p[10], p[11], 1, 1);
-		this.clr(t, '#878794');
-		this.poly(p.slice(0,8), 1);
-		if (nc && this.tilesize == 24) this.c.lineWidth *= 0.8;
-		this.rect(p[8], p[9], p[10], p[11], 1, 0, 1, nc);
+		self.clr(t, '#b0b0b9', '#4b4b54');
+		self.rect(p[8], p[9], p[10], p[11], 1, 1);
+		self.clr(t, '#878794');
+		self.poly(p.slice(0,8), 1);
+		if (nc && self.tilesize == 24) self.c.lineWidth *= 0.8;
+		self.rect(p[8], p[9], p[10], p[11], 1, 0, 1, nc);
 	break;
 	case 3: // gauss
-		this.turret(t, 5.75);
-		this.clr(t, '', '#7f335a');
-		if (this.tilesize == 24) this.c.lineWidth *= 1.3; // trying to compensate weird lightness
-		this.circle(0, 0, 3.05, 0, 1);
+		self.turret(t, 5.75);
+		self.clr(t, '', '#7f335a');
+		if (self.tilesize == 24) self.c.lineWidth *= 1.3; // trying to compensate weird lightness
+		self.circle(0, 0, 3.05, 0, 1);
 	break;
 	case 4: // floorguard
 		switch(wtype) {
-			case 1: this.c.scale(1, -1); break;
-			case 2: this.c.rotate(PI/2); break;
-			case 3:	this.c.rotate(-PI/2); break;
+			case 1: self.c.scale(1, -1); break;
+			case 2: self.c.rotate(PI/2); break;
+			case 3:	self.c.rotate(-PI/2); break;
 		}
-		this.clr(t, '#484848', '#09c');
-		this.c.beginPath();
+		self.clr(t, '#484848', '#09c');
+		self.c.beginPath();
 		r = 6 - 0.21;
-		this.c.lineWidth = 0.42;
-		this.c.moveTo(-r, 0); this.c.lineTo(-r, r);
-		this.c.lineTo( r, r); this.c.lineTo( r, 0);
-		this.c.arc(0, 0.21, r, 0, PI, true);
-		this.c.fill(); this.c.stroke();
-		this.clr(t, '#0cf');
-		this.rect(-2.4, -1.23, 1.2, 1.2, 0, 1);
-		this.clr(t, '#09c');
-		this.rect( 1.2, -2.55, 1.2, 1.2, 0, 1);
+		self.c.lineWidth = 0.42;
+		self.c.moveTo(-r, 0); self.c.lineTo(-r, r);
+		self.c.lineTo( r, r); self.c.lineTo( r, 0);
+		self.c.arc(0, 0.21, r, 0, PI, true);
+		self.c.fill(); self.c.stroke();
+		self.clr(t, '#0cf');
+		self.rect(-2.4, -1.23, 1.2, 1.2, 0, 1);
+		self.clr(t, '#09c');
+		self.rect( 1.2, -2.55, 1.2, 1.2, 0, 1);
 	break;
 	case 5: // player
-		this.c.lineJoin = 'bevel';
-		this.clr(t, '#333', '#000');
+		self.c.lineJoin = 'bevel';
+		self.clr(t, '#333', '#000');
 		var g = [  // too much effort for basically nothing
 			-3.247, -10.670, 0.340, -9.959, 0.093, -7.918,
 			-2.969, -4.392, -3.402, -0.402, -2.165, -0.433,
@@ -590,22 +594,22 @@ NMR.prototype.drawObject = function(str) {
 			-2.010, 4.021, -3.464, 9.959, -1.052, 10.052,
 			1.175, 4.082, -0.093, 10.082, 2.320, 10.113,
 			-0.433, -7.515, -0.711, -4.546, -0.773, -1.515];
-		this.poly(g.slice( 0, 6), 1, 1); // head
-		this.poly(g.slice( 6,12), 1, 1); // arms
-		this.poly(g.slice(12,18), 1, 1);
-		this.poly(g.slice(18,24), 1, 1); // legs
-		this.poly(g.slice(24,30), 1, 1);
-		this.poly(g.slice(30,36), 0, 1, 1); // body
-		this.poly([g[6], g[7],  g[30],g[31], g[12],g[13]], 0, 1, 1); // arm-to-arm
-		this.poly([g[18],g[19], g[34],g[35], g[24],g[25]], 0, 1, 1); // leg-to-leg
+		self.poly(g.slice( 0, 6), 1, 1); // head
+		self.poly(g.slice( 6,12), 1, 1); // arms
+		self.poly(g.slice(12,18), 1, 1);
+		self.poly(g.slice(18,24), 1, 1); // legs
+		self.poly(g.slice(24,30), 1, 1);
+		self.poly(g.slice(30,36), 0, 1, 1); // body
+		self.poly([g[6], g[7],  g[30],g[31], g[12],g[13]], 0, 1, 1); // arm-to-arm
+		self.poly([g[18],g[19], g[34],g[35], g[24],g[25]], 0, 1, 1); // leg-to-leg
 	break;
 	case 6: // drone
 		if (seeking) {
-			this.c.beginPath();
-			this.clr(dt-3, '#000', '#000');
-			this.line(-6.36, -6.36, -6.36, -14.5);
-			this.c.stroke();
-			this.rect(-6.84, -13.64, 1.8, 1.8, 0, 1);
+			self.c.beginPath();
+			self.clr(dt-3, '#000', '#000');
+			self.line(-6.36, -6.36, -6.36, -14.5);
+			self.c.stroke();
+			self.rect(-6.84, -13.64, 1.8, 1.8, 0, 1);
 		}
 		var bodyC = '#000', bodyF = '#79cbe3', eyeF = '#000', eye_turret = 0;
 		switch (dt) {
@@ -645,11 +649,11 @@ NMR.prototype.drawObject = function(str) {
 				bodyF = '#600';
 				eye_turret = 1;
 				var r = (params[8] && !isNaN(params[8])) ? +params[8] : 30;
-				this.c.lineWidth = r / 100;
-				this.clr(null, '', 'rgba(255,0,0,0.6)');
-				this.circle(0, 0, r*0.985, 0, 1);
-				this.clr(null, '', 'rgba(255,0,0,0.4)');
-				this.circle(0, 0, r*0.955, 0, 1);
+				self.c.lineWidth = r / 100;
+				self.clr(null, '', 'rgba(255,0,0,0.6)');
+				self.circle(0, 0, r*0.985, 0, 1);
+				self.clr(null, '', 'rgba(255,0,0,0.4)');
+				self.circle(0, 0, r*0.955, 0, 1);
 			break;
 			case 141: // gold
 				bodyC = eyeF = '#860100';
@@ -692,154 +696,156 @@ NMR.prototype.drawObject = function(str) {
 			default: // everything else - eye only. tiler (122) falls here too
 				bodyC = bodyF = 'rgba(0,0,0,0)';
 		}
-		this.clr(dt-3, bodyF, bodyC);
-		this.c.lineWidth = 1.62;
-		this.regularpoly(8.19, 8, 1, 1);
+		self.clr(dt-3, bodyF, bodyC);
+		self.c.lineWidth = 1.62;
+		self.regularpoly(8.19, 8, 1, 1);
 		
 		if (dt == 122) { // tiler's body
-			this.clr(122-3, '#797988');
-			this.rect(0, 0, 24, 24, 1, 1);
+			self.clr(122-3, '#797988');
+			self.rect(0, 0, 24, 24, 1, 1);
 		}
 		
 		var r = +params[5];
 		if (isNaN(r) || r > 2 || r < 0) r = -1;
-		this.c.rotate(r * PI * 0.15);
+		self.c.rotate(r * PI * 0.15);
 		
-		this.clr(dt-3, eyeF);
+		self.clr(dt-3, eyeF);
 		if (eye_turret) {
-			this.rect(0.95, 0, 8, 3.87, 1, 1);
+			self.rect(0.95, 0, 8, 3.87, 1, 1);
 		} else {
-			this.circle(4.5, 0, 2.16, 1);
+			self.circle(4.5, 0, 2.16, 1);
 		}
 	break;
 	case 7: // one-way
+		self.c.lineJoin = 'bevel';
 		var r = +params[2];
 		if (isNaN(r) || r < 0 || r > 3 || Math.floor(r) != r) r = 3;
 		var p = rotate_pts([12, 12, 12, -12, 7, -7, 7, 7], r);
-		this.clr(t, '#b4b7c2', '#8f94a7');
-		this.c.beginPath();
-		this.line(p[0], p[1], p[2], p[3]);
-		this.line(p[4], p[5]);
-		this.line(p[6], p[7]);
-		this.c.closePath();
-		this.c.fill();
-		this.c.stroke();
-		this.clr(t, '', '#383838');  // top side
-		this.c.beginPath();
+		self.clr(t, '#b4b7c2', '#8f94a7');
+		self.c.beginPath();
+		self.line(p[0], p[1], p[2], p[3]);
+		self.line(p[4], p[5]);
+		self.line(p[6], p[7]);
+		self.c.closePath();
+		self.c.fill();
+		self.c.stroke();
+		self.clr(t, '', '#383838');  // top side
+		self.c.beginPath();
 		p = rotate_pts([12, 11.5, 12, -11.5], r);
-		this.line(p[0], p[1], p[2], p[3]);
-		this.c.stroke();
+		self.line(p[0], p[1], p[2], p[3]);
+		self.c.stroke();
 	break;
 	case 8: // thwump
-		this.clr(t, '#838383', '#484848');
-		this.rect(0, 0, 18, 18, 1, 1);
+		self.clr(t, '#838383', '#484848');
+		self.rect(0, 0, 18, 18, 1, 1);
 		var r = +params[2];
 		if (isNaN(r) || r < 0 || r > 3 || Math.floor(r) != r) r = 1;
 		var p = rotate_pts([7.2, -9, 7.2, 9, 9, 9, 9, -9], r);
-		this.c.beginPath();
-		this.line(p[0], p[1], -p[4], -p[5]);
-		this.line(-p[6], -p[7]);
-		this.line(p[2], p[3]);
-		this.c.stroke();
-		this.clr(t, '', '#00ccff');  // zappy side
-		this.c.beginPath();
-		this.line(p[0], p[1], p[2], p[3]);
-		this.line(p[4], p[5], p[6], p[7]);
-		this.c.stroke();
+		self.c.beginPath();
+		self.line(p[0], p[1], -p[4], -p[5]);
+		self.line(-p[6], -p[7]);
+		self.line(p[2], p[3]);
+		self.c.stroke();
+		self.clr(t, '', '#00ccff');  // zappy side
+		self.c.beginPath();
+		self.line(p[0], p[1], p[2], p[3]);
+		self.line(p[4], p[5], p[6], p[7]);
+		self.c.stroke();
 	break;
 	case 9: // door
 		var p = [10.08, 0, 1.92, 24, 10, 0, 4, 10.44];
 		// dirty hacks for thin locked doors
-		if (locked && r > 1 && this.tilesize == 24) p[2] = 1;
+		if (locked && r > 1 && self.tilesize == 24) p[2] = 1;
 		p = rotate_pts(p, r);
 		if (door) {  // door
-			this.clr(t, '#797988', '#333');
-			this.rect(p[0], p[1], p[2], p[3], 1, 1, 1);
+			self.clr(t, '#797988', '#333');
+			self.rect(p[0], p[1], p[2], p[3], 1, 1, 1);
 			if (locked) {
-				this.clr(t, '#666673', '#000');
-				this.rect(p[4], p[5], p[6], p[7], 1, 1, 1);		
+				self.clr(t, '#666673', '#000');
+				self.rect(p[4], p[5], p[6], p[7], 1, 1, 1);		
 			}
 		}
 		if (sw) {  // key
-			if (zoomed) { this.popzoom(); zoomed = 0; }
-			this.c.restore(); this.c.save();
-			this.c.translate(this.rnd(sx, 1), this.rnd(sy, 1));
-			this.clr(null, '#acacb5', '#5f5f6b');
-			this.rect(0, 0, sw, sw, 1, 1, 1);
-			this.clr(null, '#666', '#000');
-			this.rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && this.tilesize==24) ? 1 : 0);
+			self.c.lineJoin = 'bevel';
+			if (zoomed) { self.popzoom(); zoomed = 0; }
+			self.c.restore(); self.c.save();
+			self.c.translate(self.rnd(sx, 1), self.rnd(sy, 1));
+			self.clr(null, '#acacb5', '#5f5f6b');
+			self.rect(0, 0, sw, sw, 1, 1, 1);
+			self.clr(null, '#666', '#000');
+			self.rect(0, -sw/8, sw/2, sw/4, 1, 1, 1, (+params[3] && self.tilesize==24) ? 1 : 0);
 		}
 	break;
 	case 10: // rocket launcher
-		this.turret(t, 5.75);
-		this.clr(t, '#490024');
-		this.circle(0, 0, 3.05, 1);
+		self.turret(t, 5.75);
+		self.clr(t, '#490024');
+		self.circle(0, 0, 3.05, 1);
 	break;
 	case 11: // exit
-		this.clr(t, '#b0b0b9', '#333');
-		this.rect(0, 0, 24.36, 24, 1, 1, 1);
-		this.rect(0, -12, 12.18, 24, 0, 0, 1);
-		this.clr(t, '', '#ccc');
-		this.rect(0, 0, 17, 17, 1, 0, 1);
-		this.rect(0, -8.5, 8.5, 17, 0, 0, 1);
+		self.clr(t, '#b0b0b9', '#333');
+		self.rect(0, 0, 24.36, 24, 1, 1, 1);
+		self.rect(0, -12, 12.18, 24, 0, 0, 1);
+		self.clr(t, '', '#ccc');
+		self.rect(0, 0, 17, 17, 1, 0, 1);
+		self.rect(0, -8.5, 8.5, 17, 0, 0, 1);
 		// exit key
 		x = +params[2]; y = +params[3];
 		if (isNaN(x+y)) x = y = FARAWAY;
-		if (zoomed) { this.popzoom(); zoomed = 0; }
-		this.c.restore(); this.c.save();
-		this.c.translate(this.rnd(x, 1), this.rnd(y, 1));
-		this.clr(null, '#b3b3bb', '#585863');
-		this.rect(0, 0, 12, 7.5, 1, 1, 1);
-		this.clr(null, '#b5cae1', '#34343a');
-		this.rect(0, 0, 7.5, 4.5, 1, 1, 1);
-		this.clr(null, '', '#6d97c3');
-		this.c.beginPath();
-		this.line(-3.75, -2.25, 3.75, 2.25);
-		this.line(3.75, -2.25, -3.75, 2.25);
-		this.c.stroke();
+		if (zoomed) { self.popzoom(); zoomed = 0; }
+		self.c.restore(); self.c.save();
+		self.c.translate(self.rnd(x, 1), self.rnd(y, 1));
+		self.clr(null, '#b3b3bb', '#585863');
+		self.rect(0, 0, 12, 7.5, 1, 1, 1);
+		self.clr(null, '#b5cae1', '#34343a');
+		self.rect(0, 0, 7.5, 4.5, 1, 1, 1);
+		self.clr(null, '', '#6d97c3');
+		self.c.beginPath();
+		self.line(-3.75, -2.25, 3.75, 2.25);
+		self.line(3.75, -2.25, -3.75, 2.25);
+		self.c.stroke();
 	break;
 	case 12: // mine
-		this.clr(t, '#000', '#900');
-		this.c.lineCap = 'butt';
-		this.c.lineWidth *= 0.9;
-		this.c.translate(0, 0.22);
-		this.c.scale(1, 1.05);
-		this.c.beginPath();
+		self.clr(t, '#000', '#900');
+		self.c.lineCap = 'butt';
+		self.c.lineWidth *= 0.9;
+		self.c.translate(0, 0.22);
+		self.c.scale(1, 1.05);
+		self.c.beginPath();
 		var p = [3.84, 3.84, 5, 4.8, 3.6, 4.08, 4.56, 4.512];
 		for (var i = 0; i < 8; i += 2) {
 			var a = i * PI/8;
-			this.c.moveTo(p[i] * Math.cos(a), p[i] * Math.sin(a));
-			this.c.lineTo(-p[i+1] * Math.cos(a), -p[i+1] * Math.sin(a));
+			self.c.moveTo(p[i] * Math.cos(a), p[i] * Math.sin(a));
+			self.c.lineTo(-p[i+1] * Math.cos(a), -p[i+1] * Math.sin(a));
 		}
-		this.c.stroke();
-		this.circle(0, 0, 2.4, 1, 1);
+		self.c.stroke();
+		self.circle(0, 0, 2.4, 1, 1);
 	break;
 	}
-	if (zoomed) this.popzoom();
-	this.c.restore();
+	if (zoomed) self.popzoom();
+	self.c.restore();
 	return true;
 }
 
-NMR.prototype.drawObjectTypes = function(objects, types) {
+this.drawObjectTypes = function(objects, types) {
  	objects = objects.filter(function(o) {
 		return types.some(function(i) { return +o.split('^')[0] == i });
 	});
 	var r = 0;
 	for (var i = 0, l = objects.length; i < l; i++)
-		if (this.drawObject(objects[i])) r++;
+		if (self.drawObject(objects[i])) r++;
 	return r;
 }
 
-NMR.prototype.render = function(s, cb) {
-	this.timer = new Date;
+this.render = function(s, cb) {
+	self.timer = new Date;
 	
 	if (!s) return;
 	if (s[0] == '$') {
 		s = s.slice(1).split('#');
 		if (s.length < 4) return;
-		this.title = s[0];
-		this.author = s[1];
-		this.type = s[2];
+		self.title = s[0];
+		self.author = s[1];
+		self.type = s[2];
 		s = s[3];
 	}
 	s = s.split('|');
@@ -847,11 +853,11 @@ NMR.prototype.render = function(s, cb) {
 	
 	var iq = [];
 	
-	this.bg = s[2];
-	this.fg = s[3];
-	iq.push([this.bg, 0]);
-	iq.push([this.fg]);
-	this.nrt = s[4];
+	self.bg = s[2];
+	self.fg = s[3];
+	iq.push([self.bg, 0]);
+	iq.push([self.fg]);
+	self.nrt = s[4];
 	
 	var ms = [];
 	if (s[5]) { // object mod
@@ -864,7 +870,7 @@ NMR.prototype.render = function(s, cb) {
 		var mod = ms[i].split(',');
 		if (mod.length > 2 && !isNaN(+mod[0])) {
 			var id = +mod[0];
-			this.mods[id] = this.mods[id] || {};
+			self.mods[id] = self.mods[id] || {};
 			mod[1] = mod[1].toLowerCase();
 			if (mod[1] == '_icon') {
 				var mi = mod[2];
@@ -874,29 +880,28 @@ NMR.prototype.render = function(s, cb) {
 					mod[2] = { x: +mi[0], y: +mi[1], img: mi[2] };
 				} else mod[2] = null;
 			}
-			this.mods[id][mod[1]] = mod[2];
+			self.mods[id][mod[1]] = mod[2];
 		}
 	}
 	
-	this.pending = iq.length;
-	var that = this;
+	self.pending = iq.length;
 	for (var i = 0; i < iq.length; i++)
-		this.prepImage(iq[i][0], iq[i][1], function() {that._render(s, cb)} );
-	if (this.pending == 0) { // there were no valid images in queue
-		this._render(s, cb);
+		self.prepImage(iq[i][0], iq[i][1], function() {self._render(s, cb)} );
+	if (self.pending == 0) { // there were no valid images in queue
+		self._render(s, cb);
 	}
 }
 
-NMR.prototype._render = function(s, cb) {
-	if (this.rendering) return;
-	this.rendering = 1;
+this._render = function(s, cb) {
+	if (self.rendering) return;
+	self.rendering = 1;
 	
 	var t = s[0];  // tiles
 	var o = s[1].split('!');  // objects
 	
 	// elliminate double-placed objects (slow!)
 	// all the dupes will be counted properly
-	var STUB = '42^,', oi;
+	var STUB = '-7^', oi;
 	for (var i = o.length-1; i > 0; i--) {
 		if ((oi = o[i]) == STUB) continue;
 		for (var j = 0; j < i; j++) {
@@ -905,136 +910,70 @@ NMR.prototype._render = function(s, cb) {
 	}
 	
 	// paint background (walls)
-	this.clr(null, '#ccc');
-	this.c.fillRect(0, 0, this.ca.width, this.ca.height);
+	self.clr(null, '#ccc');
+	self.c.fillRect(0, 0, self.ca.width, self.ca.height);
 	
-	this.zoom(this.aa);
+	self.zoom(self.aa);
 		
 	// paint objects
 	var totalo = 0;
-	this.zoom(this.tilesize / 24); // scaling object coordinates for custom tile sizes
-	this.drawImage(this.bg);
-	totalo += this.drawObjectTypes(o, [2,3,7,9,10,11]); // background objects - always behind
-	totalo += this.drawObjectTypes(o, [0,1,4,6,8,12]); // normal objects
-	totalo += this.drawObjectTypes(o, [5]); // player - always in front
-	this.popzoom();
+	self.zoom(self.tilesize / 24); // scaling object coordinates for custom tile sizes
+	self.drawImage(self.bg);
+	totalo += self.drawObjectTypes(o, [2,3,7,9,10,11]); // background objects - always behind
+	totalo += self.drawObjectTypes(o, [0,1,4,6,8,12]); // normal objects
+	totalo += self.drawObjectTypes(o, [5]); // player - always in front
+	self.popzoom();
 	
 	// paint foreground (tiles)
-	this.zoom(this.tilesize / 2);
-	this.c.beginPath();
+	self.zoom(self.tilesize / 2);
+	self.c.beginPath();
 	for (var i = -1; i <= ROWS; i++) {
 		for (var j = -1; j <= COLS; j++) {
-			this.c.save();
+			self.c.save();
 			if (i==-1 || j==-1 || i==ROWS || j==COLS)
-				this.addTile(j, i, 1);
+				self.addTile(j, i, 1);
 			else
-				this.addTile(j, i, t.charCodeAt(i + j * ROWS) - 48);
-			this.c.restore();
+				self.addTile(j, i, t.charCodeAt(i + j * ROWS) - 48);
+			self.c.restore();
 		}
 	}
-	this.popzoom();
-	this.clr(null, '#797988');
-	this.c.fill();
+	self.popzoom();
+	self.clr(null, '#797988');
+	self.c.fill();
 	
-	this.zoom(this.tilesize / 24);
-	this.drawImage(this.fg);
+	self.zoom(self.tilesize / 24);
+	self.drawImage(self.fg);
 	// put up some fancy text
-	this.c.fillStyle = '#000';
-	if (typeof this.title != 'undefined') {
-		font.putStr(this.c, 410, 586, (this.title ? this.title : '') +
-			'  ( by ' + this.author + ' )' +
-			((this.type && this.type != 'none') ? '  ::  ' + this.type : '') +
-			(this.nrt ? '  #  ' + this.nrt : ''));
+	self.c.fillStyle = '#000';
+	if (typeof self.title != 'undefined') {
+		font.putStr(self.c, 410, 586, (self.title ? self.title : '') +
+			'  ( by ' + self.author + ' )' +
+			((self.type && self.type != 'none') ? '  ::  ' + self.type : '') +
+			(self.nrt ? '  #  ' + self.nrt : ''));
 	}
 	// info
-	this.c.fillStyle = 'rgba(0,0,0,0.3)';
-	font.putStr(this.c, 2, 592, 'nmr v' + VERSION + '   ' +
-		totalo + 'objects in ' + (new Date - this.timer) + 'ms   ' + new Date);
-	this.popzoom();
+	self.c.fillStyle = 'rgba(0,0,0,0.3)';
+	font.putStr(self.c, 2, 592, 'nmr v' + VERSION + '   ' +
+		totalo + 'objects in ' + (new Date - self.timer) + 'ms   ' + new Date);
+	self.popzoom();
 	
 	// back to normal
-	this.popzoom();
+	self.popzoom();
 	
 	// apply antialiasing
-	if (this.aa > 1) {
-		this.c.drawImage(this.ca, 0, 0, this.rw, this.rh);
-		var iData = this.c.getImageData(0, 0, this.rw, this.rh);
-		this.ca.width = this.rw; this.ca.height = this.rh;
-		this.c.putImageData(iData, 0, 0);
+	if (self.aa > 1) {
+		self.c.drawImage(self.ca, 0, 0, self.rw, self.rh);
+		var iData = self.c.getImageData(0, 0, self.rw, self.rh);
+		self.ca.width = self.rw; self.ca.height = self.rh;
+		self.c.putImageData(iData, 0, 0);
 	}
 	
-	console.log('render', new Date - this.timer, 'ms');
-	cb(this.ca);
+	console.log('render', new Date - self.timer, 'ms');
+	cb(self.ca);
 }
 
-function canvasToFile(ca, where, callback) {
-	try {
-		var out = fs.createWriteStream(where);
-		var stream = ca.createPNGStream();
-		stream.on('data', function(chunk){
-			out.write(chunk);
-		});
-		stream.on('end', function(){
-			out.destroySoon();
-			out.on('close', function(){
-				console.log('saved', where);
-				callback();
-			});
-		});
-	}
-	catch (e) {
-		console.log('!! failed to save', where, 'with error:', e);
-		callback();
-	}
-}
+// return { render: self.render };
 
-function genThumb(srcpath, dstpath, height, cb) {
-	if (!height) { cb(); return; }
-	var img = new Image();
-	img.onload = function () {
-		var ca = new Canvas(img.width, img.height);
-		var c = ca.getContext('2d');
-		c.drawImage(img, 0, 0, ca.width, ca.height);
-		require('./stackblur').stackBlurCanvasRGB(ca, 0, 0, img.width, img.height, img.height / height - 1);
-		c2 = new Canvas(img.width * height/img.height, height);
-		var c = c2.getContext('2d');
-		c.patternQuality = 'best';
-		c.drawImage(ca, 0, 0, c2.width, c2.height);
-		canvasToFile(c2, dstpath, function() {
-			console.log('T', srcpath, '-->', dstpath);
-			cb();
-		});
-		c = ca = null;
-	}
-	img.onerror = function (e) {
-		console.log('!! image.onerror', srcpath, e.message)
-		cb();
-	}
-	img.src = srcpath;
-}
-
-exports.renderToFile = function(map_data, height, root, map_id, cb) {
-	var th = 0, r;
-	var filepath = path.join(root, map_id + '-');
-	var fullpath = filepath + '600.png';
-	
-	if (height > 600) { // render hi-res
-		r = new NMR({tilesize: Math.round(height / 600 * 24), printable: 1});
-		r.render(map_data, function(res) {
-			canvasToFile(res, filepath + height + '.png', cb);
-		});
-		r = null;
-	} else { // render default, generate thumbnail if needed
-		height = height < 600 ? height : 0;
-		if (!path.existsSync(fullpath)) {
-			r = new NMR();
-			r.render(map_data, function(res) {
-				canvasToFile(res, fullpath, function() {
-					genThumb(fullpath, filepath + height + '.png', height, cb);
-				});
-			});
-			r = null;
-		} else genThumb(fullpath, filepath + height + '.png', height, cb);
-	}
+// end of nmr
 }
 
