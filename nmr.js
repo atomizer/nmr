@@ -199,8 +199,7 @@ this.line = function(x1, y1, x2, y2) {
 
 this.rect = function(x, y, w, h, centered, fill, stroke, noclip) {
 	if (centered) { x = x - w / 2; y = y - h / 2; }
-	if (!fill && !stroke) return;
-	self.c.beginPath();
+	if (fill || stroke) self.c.beginPath();
 	self.c.rect(x, y, w, h);
 	if (fill) self.c.fill();
 	if (stroke) {
@@ -214,8 +213,7 @@ this.rect = function(x, y, w, h, centered, fill, stroke, noclip) {
 }
 
 this.circle = function(x, y, r, fill, stroke) {
-	if (!fill && !stroke) return;
-	self.c.beginPath();
+	if (fill || stroke) self.c.beginPath();
 	self.c.arc(x, y, r, 0, PI*2, false);
 	if (fill) self.c.fill();
 	if (stroke) self.c.stroke();
@@ -224,8 +222,7 @@ this.circle = function(x, y, r, fill, stroke) {
 this.poly = function(a, fill, stroke, noclose) {
 	// polygon from array [x1, y1, x2, y2, ...]
 	if (!a || a.length < 4) return;
-	if (!fill && !stroke) return;
-	self.c.beginPath();
+	if (fill || stroke) self.c.beginPath();
 	self.c.moveTo(a[0], a[1]);
 	for (var i = 2, l = a.length; i < l; i += 2) {
 		self.c.lineTo(a[i], a[i+1]);
@@ -238,8 +235,7 @@ this.poly = function(a, fill, stroke, noclose) {
 this.regularpoly = function(r, n, fill, stroke) {
 	// regular polygon
 	// used only for drones - do we really need it?
-	if (!fill && !stroke) return;
-	self.c.beginPath();
+	if (fill || stroke) self.c.beginPath();
 	var a = PI*2 / n;
 	var R = r / Math.cos(a/2);
 	self.c.save();
