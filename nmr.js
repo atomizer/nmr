@@ -6,8 +6,6 @@ var fs = require('fs'),
 	Canvas = require('canvas'),
 	Image = Canvas.Image;
 
-console.log('Using cairo', Canvas.cairoVersion);
-
 var font = require('./font');
 
 var IMAGE_ROOT = '/home/node/static/images';

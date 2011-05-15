@@ -1,10 +1,10 @@
-var http = require('http')
-var paperboy = require('paperboy')
-var request = require('request')
+var http = require('http'),
+	paperboy = require('paperboy'),
+	request = require('request'),
+	spawn = require('spawn');
 
-MAP_URI = 'http://www.nmaps.net/ID/data'
+MAP_URI = 'http://www.nmaps.net/ID/data';
 
-var utils = require('./utils');
 var ROOT = '/home/node/static';
 var lock = {};
 
@@ -20,7 +20,7 @@ function tryToServe(req, res) {
 	// rewriting
 	req.url = req.url.replace(/^\/(\d+)$/, '/$1-600');
 	req.url = req.url.replace(/^\/full\/(\d+)$/, '/$1-600');
-	req.url = req.url.replace(/^\/thumb\/(\d+)$/, '/$1-100');
+	req.url = req.url.replace(/^\/thumbs?\/(\d+)$/, '/$1-100');
 	if (req.url.match(/^\/\d+-\d+$/)) req.url += '.png';
 	// delivering
 	paperboy
@@ -36,7 +36,7 @@ function tryToServe(req, res) {
 	.otherwise(function(err) {
 		var m = req.url.match(/^\/(\d+)-(\d+)/);
 		var height, map_id;
-		if (!m || !(map_id = +m[1]) || ((height = +m[2]) > 2400) ) {
+		if (!m || !(map_id = +m[1]) || (height = +m[2]) > 2400 || !height) {
 			res.writeHead(404, {'Content-Type': 'text/plain'});
 			res.end('there is no such thing, sorry.');
 			console.log('404', ip, req.url);
@@ -49,10 +49,19 @@ function tryToServe(req, res) {
 			lock[map_id] = map_id;
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 				if (!e && mres.statusCode == 200) {
-					utils.renderToFile(body, height, ROOT, map_id, function() {
+					var events = spawn(__dirname + '/worker.js');
+					events.on('spawned', function() {
+						console.log('spawned worker for', map_id);
+					});
+					events.emit('render', { map_data: body, height: height, root: ROOT, map_id: map_id });
+					events.on('success', function() {
 						res.writeHead(302, {'Location': '/' + map_id + '-' + height});
 						res.end();
+						events.emit('terminate');
+					});
+					events.on('terminated', function() {
 						delete lock[map_id];
+						console.log('terminated worker for', map_id);
 					});
 				} else {
 					res.writeHead(404, {'Content-Type': 'text/plain'});

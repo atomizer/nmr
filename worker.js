@@ -3,10 +3,10 @@ var fs = require('fs'),
 	Canvas = require('canvas'),
 	Image = Canvas.Image;
 
-var NMR = require('./nmr').NMR, blur = require('./stackblur');
+var NMR = require('./nmr').NMR,
+	blur = require('./stackblur');
 
-
-var canvasToFile = exports.canvasToFile = function(ca, where, callback) {
+function canvasToFile(ca, where, callback) {
 	try {
 		var out = fs.createWriteStream(where);
 		var stream = ca.createPNGStream();
@@ -26,7 +26,7 @@ var canvasToFile = exports.canvasToFile = function(ca, where, callback) {
 	}
 }
 
-var genThumb = exports.genThumb = function(srcpath, dstpath, height, cb) {
+function genThumb(srcpath, dstpath, height, cb) {
 	if (!height) { cb(); return; }
 	var img = new Image();
 	img.onload = function () {
@@ -51,7 +51,14 @@ var genThumb = exports.genThumb = function(srcpath, dstpath, height, cb) {
 	img.src = srcpath;
 }
 
-var renderToFile = exports.renderToFile = function(map_data, height, root, map_id, cb) {
+function renderToFile(options, cb) {
+	// options
+	var map_data = options.map_data,
+		root = options.root,
+		map_id = options.map_id,
+		height = options.height || 600;
+	//if (!map_data || !map_id) return cb();
+	
 	var th = 0, r;
 	var filepath = path.join(root, map_id + '-');
 	var fullpath = filepath + '600.png';
@@ -72,5 +79,14 @@ var renderToFile = exports.renderToFile = function(map_data, height, root, map_i
 			});
 		} else genThumb(fullpath, filepath + height + '.png', height, cb);
 	}
+}
+
+module.exports = function (events) {
+	events.emit('spawned');
+	events.on('render', function(options) {
+		renderToFile(options, function() {
+			events.emit('success');
+		});
+	});
 }
 
