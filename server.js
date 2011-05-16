@@ -52,7 +52,7 @@ function tryToServe(req, res) {
 				res.end();
 				delete lock[map_id];
 				console.log('!! lock on', map_id, 'was released by timeout! investigation strongly recommended.');
-			}, 10000);
+			}, 60000);
 			var timer = new Date;
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 				if (!e && mres.statusCode == 200) {
