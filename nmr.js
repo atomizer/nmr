@@ -1,4 +1,4 @@
-var VERSION = '017n';
+var VERSION = '018n';
 
 var fs = require('fs'),
 	path = require('path'),
@@ -65,8 +65,7 @@ function clrTrans(color, tr) {
 	tr = tr.split('.');
 	if (tr.length < 8) return color;
 	for (var i = 0; i < 8; i++) {
-		tr[i] = +tr[i];
-		if (isNaN(tr[i])) return color;
+		tr[i] = +tr[i] || 0;
 	}
 	var c = [];
 	// step 1: deserialization from canvas-style color
