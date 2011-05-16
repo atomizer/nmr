@@ -47,6 +47,13 @@ function tryToServe(req, res) {
 				return;
 			}
 			lock[map_id] = map_id;
+			var timeout = setTimeout(function() {
+				res.writeHead(500);
+				res.end();
+				delete lock[map_id];
+				console.log('!! lock on', map_id, 'was released by timeout! investigation strongly recommended.');
+			}, 10000);
+			var timer = new Date;
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 				if (!e && mres.statusCode == 200) {
 					var events = spawn(__dirname + '/worker.js');
@@ -55,18 +62,20 @@ function tryToServe(req, res) {
 					});
 					events.emit('render', { map_data: body, height: height, root: ROOT, map_id: map_id });
 					events.on('success', function() {
-						res.writeHead(302, {'Location': '/' + map_id + '-' + height});
+						res.writeHead(302, {'Location': req.url});
 						res.end();
 						events.emit('terminate');
 					});
 					events.on('terminated', function() {
 						delete lock[map_id];
-						console.log('terminated worker for', map_id);
+						clearTimeout(timeout);
+						console.log('full cycle', new Date - timer, 'ms');
 					});
 				} else {
 					res.writeHead(404, {'Content-Type': 'text/plain'});
 					res.end('NUMA returned ' + mres.statusCode + (e ? '\nError: ' + e : ''));
 					delete lock[map_id];
+					clearTimeout(timeout);
 				}
 			});
 		}
