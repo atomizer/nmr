@@ -55,28 +55,39 @@ function tryToServe(req, res) {
 			}, 60000);
 			var timer = new Date;
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
-				if (!e && mres.statusCode == 200) {
-					var events = spawn(__dirname + '/worker.js');
-					events.on('spawned', function() {
-						console.log('spawned worker for', map_id);
-					});
-					events.emit('render', { map_data: body, height: height, root: ROOT, map_id: map_id });
-					events.on('success', function() {
-						res.writeHead(302, {'Location': req.url});
-						res.end();
-						events.emit('terminate');
-					});
-					events.on('terminated', function() {
-						delete lock[map_id];
-						clearTimeout(timeout);
-						console.log('full cycle', new Date - timer, 'ms');
-					});
-				} else {
+				if (e || mres.statusCode != 200 || !body) {
+					clearTimeout(timeout);
+					delete lock[map_id];
 					res.writeHead(404, {'Content-Type': 'text/plain'});
-					res.end('NUMA returned ' + mres.statusCode + (e ? '\nError: ' + e : ''));
+					return res.end('NUMA returned ' + mres.statusCode + (e ? '\nError: ' + e : ''));
+				}
+				if (Buffer.isBuffer(body)) body = body.toString();
+				// strip everything non-ascii for good measure
+				for (var i = 0, l = body.length, b = body, body = ''; i < l; i++) {
+					var c = b.charCodeAt(i);
+					if (c > 31 && c < 128) body += b[i];
+				}
+				// spawn worker process
+				var events = spawn(__dirname + '/worker.js');
+				events.on('spawned', function() {
+					console.log('spawned worker for', map_id);
+				});
+				events.emit('render', {
+					map_data: body,
+					height: height,
+					root: ROOT,
+					map_id: map_id
+				});
+				events.on('success', function() {
+					res.writeHead(302, {'Location': req.url});
+					res.end();
+					events.emit('terminate');
+				});
+				events.on('terminated', function() {
 					delete lock[map_id];
 					clearTimeout(timeout);
-				}
+					console.log('full cycle', new Date - timer, 'ms');
+				});
 			});
 		}
 	});
