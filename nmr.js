@@ -62,7 +62,6 @@ function rotate_pts(a, dir) {
 
 function clrTrans(color, tr) {
 	// colorTransform, canvas way
-	if (color == 'transparent') return color;
 	tr = tr.split('.');
 	if (tr.length < 8) return color;
 	for (var i = 0; i < 8; i++) {
@@ -172,11 +171,11 @@ this.clr = function(type, fill, stroke) {
 	// set stroke and fill colors in one line, applying transformation if necessary
 	var t;
 	if (type != null && self.mods[type+3] && (t = self.mods[type+3]['_color'])) {
-		if (fill) {
+		if (fill && fill != 'transparent') {
 			self.c.fillStyle = fill;
 			fill = clrTrans(self.c.fillStyle, t);
 		}
-		if (stroke) {
+		if (stroke && stroke != 'transparent') {
 			self.c.strokeStyle = stroke;
 			stroke = clrTrans(self.c.strokeStyle, t);
 		}
