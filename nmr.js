@@ -62,6 +62,7 @@ function rotate_pts(a, dir) {
 
 function clrTrans(color, tr) {
 	// colorTransform, canvas way
+	if (color == 'transparent') return color;
 	tr = tr.split('.');
 	if (tr.length < 8) return color;
 	for (var i = 0; i < 8; i++) {
@@ -609,7 +610,7 @@ this.drawObject = function(str) {
 			case 0: // zap
 			break;
 			case 1: // laser
-				bodyF = 'rgba(0,0,0,0)';
+				bodyF = 'transparent';
 			break;
 			case 2: // chaingun
 				bodyF = '#666';
@@ -653,7 +654,7 @@ this.drawObject = function(str) {
 				bodyF = '#ffcc00';
 			break;
 			case 201: // text
-				eyeF = 'rgba(0,0,0,0)';
+				eyeF = 'transparent';
 				/* // TODO: figure out how the hell Flash does this
 				function parse_clr(s) {
 					s = parseInt(s, 16) || 0;
@@ -687,7 +688,7 @@ this.drawObject = function(str) {
 				c.fillText(txt, dx, dy, c.measureText(txt).width);
 				*/
 			default: // everything else - eye only. tiler (122) falls here too
-				bodyC = bodyF = 'rgba(0,0,0,0)';
+				bodyC = bodyF = 'transparent';
 		}
 		self.clr(dt-3, bodyF, bodyC);
 		self.c.lineWidth = 1.62;
