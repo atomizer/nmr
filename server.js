@@ -18,6 +18,7 @@ function tryToServe(req, res) {
 		console.log('405', ip, req.method)
 	}
 	// rewriting
+	req.original_url = req.url;
 	req.url = req.url.replace(/^\/(\d+)$/, '/$1-600');
 	req.url = req.url.replace(/^\/full\/(\d+)$/, '/$1-600');
 	req.url = req.url.replace(/^\/thumbs?\/(\d+)$/, '/$1-100');
@@ -79,7 +80,7 @@ function tryToServe(req, res) {
 					map_id: map_id
 				});
 				events.on('success', function() {
-					res.writeHead(302, {'Location': req.url});
+					res.writeHead(302, {'Location': req.original_url});
 					res.end();
 					events.emit('terminate');
 				});
