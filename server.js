@@ -1,4 +1,5 @@
 var http = require('http'),
+	util = require('util'),
 	paperboy = require('paperboy'),
 	request = require('request'),
 	spawn = require('spawn');
@@ -15,7 +16,7 @@ function tryToServe(req, res) {
 	if (req.method != 'GET') {
 		res.writeHead(405, {'Allow': 'GET'});
 		res.end();
-		console.log('405', ip, req.method)
+		util.log('405 ' + ip + ' bad method: ' + req.method)
 	}
 	// rewriting
 	req.original_url = req.url;
@@ -27,7 +28,7 @@ function tryToServe(req, res) {
 	paperboy
 	.deliver(ROOT, req, res)
 	.after(function(statCode) {
-		console.log(statCode + '', ip, req.url);
+		util.log(statCode + ' ' + ip + ' ' + req.url);
 	})
 	.error(function(statCode, msg) {
 		res.writeHead(statCode, {'Content-Type': 'text/plain'});
@@ -40,7 +41,7 @@ function tryToServe(req, res) {
 		if (!m || !(map_id = +m[1]) || (height = +m[2]) > 2400 || !height) {
 			res.writeHead(404, {'Content-Type': 'text/plain'});
 			res.end('there is no such thing, sorry.');
-			console.log('404', ip, req.url);
+			util.log('404 ' + ip + ' ' + req.url);
 		} else {
 			if (lock[map_id]) {
 				res.writeHead(503);
@@ -52,9 +53,9 @@ function tryToServe(req, res) {
 				res.writeHead(500);
 				res.end();
 				delete lock[map_id];
-				console.log('!! lock on', map_id, 'was released by timeout! investigation strongly recommended.');
+				console.log('!! BUG', map_id);
 			}, 60000);
-			var timer = new Date;
+			console.time('cycle');
 			request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 				if (e || mres.statusCode != 200 || !body) {
 					clearTimeout(timeout);
@@ -87,7 +88,7 @@ function tryToServe(req, res) {
 				events.on('terminated', function() {
 					delete lock[map_id];
 					clearTimeout(timeout);
-					console.log('full cycle', new Date - timer, 'ms');
+					console.timeEnd('cycle');
 				});
 			});
 		}

@@ -142,15 +142,11 @@ this.zoom = function(factor) {
 }
 
 this.popzoom = function() {
-	if (self.zooms.length) {
-		self.c.restore();
-		var pz = self.cz;
-		self.cz = self.zooms.pop();
-		return pz;
-	} else {
-		console.log('POPZOOM!!!11');
-		return 1;
-	}
+	if (!self.zooms.length) return 1;
+	self.c.restore();
+	var pz = self.cz;
+	self.cz = self.zooms.pop();
+	return pz;
 }
 
 // ========================================================
@@ -830,8 +826,6 @@ this.drawObjectTypes = function(objects, types) {
 }
 
 this.render = function(s, cb) {
-	self.timer = new Date;
-	
 	if (!s) return;
 	if (s[0] == '$') {
 		s = s.slice(1).split('#');
@@ -889,6 +883,9 @@ this._render = function(s, cb) {
 	if (self.rendering) return;
 	self.rendering = 1;
 	
+	console.time('render');
+	var timer = new Date;
+
 	var t = s[0];  // tiles
 	var o = s[1].split('!');  // objects
 	
@@ -947,7 +944,7 @@ this._render = function(s, cb) {
 	// info
 	self.c.fillStyle = 'rgba(0,0,0,0.3)';
 	font.putStr(self.c, 2, 592, 'nmr v' + VERSION + '   ' +
-		totalo + 'objects in ' + (new Date - self.timer) + 'ms   ' + new Date);
+		totalo + ' objects in ' + (new Date - timer) + 'ms @ ' + new Date);
 	self.popzoom();
 	
 	// back to normal
@@ -961,7 +958,7 @@ this._render = function(s, cb) {
 		self.c.putImageData(iData, 0, 0);
 	}
 	
-	console.log('render', new Date - self.timer, 'ms');
+	console.timeEnd('render');
 	cb(self.ca);
 }
 
