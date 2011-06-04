@@ -292,8 +292,8 @@ this.prepImage = function(urlf, blend, cb) {
 	
 	request({uri: url, encoding: 'binary'}, function(e, res, body) {
 		if (e || res.statusCode != 200) {
-			console.log('!! request', res.statusCode, url,
-				e && e.message ? e.message : '');
+			console.log('!! request', url,
+				res && res.statusCode ? res.statusCode : (e && e.message ? e.message : ''));
 			if (--self.pending == 0) cb();
 			return;
 		}
