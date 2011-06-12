@@ -14,9 +14,10 @@ var s = http.createServer();
 function tryToServe(req, res) {
 	var ip = req.connection.remoteAddress;
 	if (req.method != 'GET') {
-		res.writeHead(405, {'Allow': 'GET'});
+		res.writeHead(405, {'Allow': 'GET', 'Connection': 'Close'});
 		res.end();
-		util.log('405 ' + ip + ' bad method: ' + req.method)
+		util.log('405 ' + ip + ' bad method: ' + req.method);
+		return;
 	}
 	// rewriting
 	req.original_url = req.url;
