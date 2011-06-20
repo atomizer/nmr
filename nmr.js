@@ -470,6 +470,9 @@ this.drawObject = function(str) {
 	var cmods = self.mods[t == 6 ? dt : t + 3];
 	var mod;
 	if (cmods) {
+		// alpha
+		mod = cmods['_alpha'];
+		if (!isNaN(mod)) self.c.globalAlpha = mod/100;
 		// icon mod
 		mod = cmods['_icon'];
 		if (mod) {
@@ -505,9 +508,6 @@ this.drawObject = function(str) {
 				self.zoom(xscale);
 			} else self.c.scale(xscale, yscale);
 		}
-		// alpha
-		mod = cmods['_alpha'];
-		if (!isNaN(mod)) self.c.globalAlpha = mod/100;
 	}
 	
 	// --------- render object
