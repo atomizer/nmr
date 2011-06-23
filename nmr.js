@@ -472,7 +472,10 @@ this.drawObject = function(str) {
 	if (cmods) {
 		// alpha
 		mod = cmods['_alpha'];
-		if (!isNaN(mod)) self.c.globalAlpha = mod/100;
+		if (!isNaN(mod)) {
+			if (dt && dt > 100 && dt < 104) mod = 100; // ghosts are not affected
+			self.c.globalAlpha = mod/100;
+		}
 		// icon mod
 		mod = cmods['_icon'];
 		if (mod) {
