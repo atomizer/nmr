@@ -593,13 +593,6 @@ this.drawObject = function(str) {
 		self.poly([g[18],g[19], g[34],g[35], g[24],g[25]], 0, 1, 1); // leg-to-leg
 	break;
 	case 6: // drone
-		if (seeking) {
-			self.c.beginPath();
-			self.clr(dt-3, '#000', '#000');
-			self.line(-6.36, -6.36, -6.36, -14.5);
-			self.c.stroke();
-			self.rect(-6.84, -13.64, 1.8, 1.8, 0, 1);
-		}
 		var bodyC = '#000', bodyF = '#79cbe3', eyeF = '#000', eye_turret = 0;
 		switch (dt) {
 			case 0: // zap
@@ -684,6 +677,14 @@ this.drawObject = function(str) {
 				*/
 			default: // everything else - eye only. tiler (122) falls here too
 				bodyC = bodyF = 'transparent';
+		}
+		// antenna
+		if (seeking) {
+			self.c.beginPath();
+			self.clr(dt-3, bodyC, bodyC);
+			self.line(-6.36, -6.36, -6.36, -14.5);
+			self.c.stroke();
+			self.rect(-6.84, -13.64, 1.8, 1.8, 0, 1);
 		}
 		self.clr(dt-3, bodyF, bodyC);
 		self.c.lineWidth = 1.62;
