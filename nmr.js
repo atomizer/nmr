@@ -384,10 +384,6 @@ this.drawObject = function(str) {
 		var dt = +params[4];
 		if (params[4] == '' || isNaN(dt)) dt = -1; // do not default to zap
 		var seeking = +params[3];
-		if (seeking && dt == 1) { // seeking laser -> rotolaser
-			seeking = 0;
-			dt = 131;
-		}
 		// clamp coordinates to the grid
 		x = Math.round((x - 12) / 24) * 24 + 12;
 		y = Math.round((y - 12) / 24) * 24 + 12;
@@ -493,7 +489,7 @@ this.drawObject = function(str) {
 			yscale = mod/SCALE[t];
 		}
 		mod = +cmods['r'];
-		if (!isNaN(mod) && RADIUS[t]) {
+		if (!isNaN(mod) && RADIUS[t] && dt != 122) {
 			if (isNaN(xscale)) xscale = mod/RADIUS[t];
 			if (isNaN(yscale)) yscale = mod/RADIUS[t];
 		}
@@ -602,6 +598,10 @@ this.drawObject = function(str) {
 			break;
 			case 1: // laser
 				bodyF = 'transparent';
+				if (seeking) { // seeking laser -> rotolaser
+					bodyF = '#333a7e';
+					seeking = 0;
+				}
 			break;
 			case 2: // chaingun
 				bodyF = '#666';
