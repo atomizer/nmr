@@ -2,12 +2,18 @@ var http = require('http'),
 	util = require('util'),
 	paperboy = require('paperboy'),
 	request = require('request'),
-	spawn = require('spawn');
+	workerpool = require('./workerpool');
 
 var MAP_URI = 'http://www.nmaps.net/ID/data';
 
 var ROOT = '/home/node/static';
-var lock = {};
+
+var wp = new workerpool.WorkerPool('worker.js', {
+	jobTimeout: 60e3,
+	minWorkers: 1,
+	maxWorkers: 10,
+	poolTimeout: 300e3
+});
 
 function serve(req, res) {
 	var ip = req.connection.remoteAddress;
@@ -39,29 +45,15 @@ function serve(req, res) {
 		var height, map_id;
 		if (!m || !(map_id = +m[1]) || (height = +m[2]) > 2400 || !height) {
 			res.writeHead(404, {'Content-Type': 'text/plain'});
-			res.end('there is no such thing, sorry.');
+			res.end('404 Not Found\n\nIf you think this is an error, contact me.');
 			util.log('404 ' + ip + ' ' + req.url);
 			return;
 		}
-		if (lock[map_id]) {
-			res.writeHead(503);
-			res.end();
-			return;
-		}
-		lock[map_id] = map_id;
-		var timeout = setTimeout(function() {
-			res.writeHead(500);
-			res.end();
-			delete lock[map_id];
-			console.log('!! BUG', map_id);
-		}, 60000);
 		console.time('cycle');
 		request({uri: MAP_URI.replace('ID', map_id)}, function(e, mres, body) {
 			if (e || mres.statusCode != 200 || !body) {
-				clearTimeout(timeout);
-				delete lock[map_id];
 				res.writeHead(404, {'Content-Type': 'text/plain'});
-				return res.end('NUMA returned ' + mres.statusCode + (e ? '\nError: ' + e : ''));
+				return res.end('map source returned ' + mres.statusCode + (e ? '\nError: ' + e : ''));
 			}
 			if (Buffer.isBuffer(body)) body = body.toString();
 			// strip everything non-ascii for good measure
@@ -69,32 +61,23 @@ function serve(req, res) {
 				var c = b.charCodeAt(i);
 				if (c > 31 && c < 128) body += b[i];
 			}
-			generate(body);
-		});
-		
-		function generate(data) {
-			// spawn worker process
-			var events = spawn(__dirname + '/worker.js');
-			events.on('spawned', function() {
-				console.log('spawned worker for', map_id);
-			});
-			events.emit('render', {
-				map_data: data,
+			wp.addJob('render', {
+				map_data: body,
 				height: height,
 				root: ROOT,
 				map_id: map_id
-			});
-			events.on('success', function() {
+			}, function(err) {
+				console.timeEnd('cycle');
+				if (err) {
+					res.writeHead(503);
+					res.write('503 Internal Server Error\n\n');
+					res.end(err);
+					return;
+				}
 				res.writeHead(302, {'Location': req.original_url});
 				res.end();
-				events.emit('terminate');
-			});
-			events.on('terminated', function() {
-				delete lock[map_id];
-				clearTimeout(timeout);
-				console.timeEnd('cycle');
-			});
-		}
+			}, map_id);
+		});
 	});
 }
 

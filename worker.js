@@ -4,7 +4,8 @@ var fs = require('fs'),
 	Image = Canvas.Image;
 
 var NMR = require('./nmr').NMR,
-	blur = require('./stackblur');
+	blur = require('./stackblur'),
+	workerpool = require('./workerpool');
 
 function canvasToFile(ca, where, callback) {
 	try {
@@ -21,7 +22,7 @@ function canvasToFile(ca, where, callback) {
 		});
 	}
 	catch (e) {
-		console.log('!! failed to save', where, 'with error:', e);
+		//console.log('!! failed to save', where, 'with error:', e);
 		callback();
 	}
 }
@@ -39,13 +40,13 @@ function genThumb(srcpath, dstpath, height, cb) {
 		c.patternQuality = 'fast';
 		c.drawImage(ca, 0, 0, c2.width, c2.height);
 		canvasToFile(c2, dstpath, function() {
-			console.log('T', srcpath, '-->', dstpath);
+			//console.log('T', srcpath, '-->', dstpath);
 			cb();
 		});
 		c = ca = null;
 	}
 	img.onerror = function (e) {
-		console.log('!! image.onerror', srcpath, e.message)
+		//console.log('!! image.onerror', srcpath, e.message)
 		cb();
 	}
 	img.src = srcpath;
@@ -81,12 +82,11 @@ function renderToFile(options, cb) {
 	}
 }
 
-module.exports = function (events) {
-	events.emit('spawned');
-	events.on('render', function(options) {
-		renderToFile(options, function() {
-			events.emit('success');
-		});
+var me = new workerpool.Worker(function(action, data) {
+	var self = this;
+	if (action === 'render') renderToFile(data, function() {
+		self.saveResult('yay'); // for some reason it doesnt work without this
+		self.jobDone();
 	});
-}
+});
 
