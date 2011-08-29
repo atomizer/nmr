@@ -259,7 +259,7 @@ this.turret = function(type, r) {
 
 this.prepImage = function(urlf, blend, cb) {
 	var m, url;
-	var url_re = /^(http:\/\/.+\.(gif|jpg|png))(?:\?(.+))?$/;
+	var url_re = /^(http:\/\/.+\.(gif|jpg|png))(?:\?(.+))?$/i;
 	
 	if (!urlf || self.images[urlf] || !(m = urlf.match(url_re)) || !(url = m[1])) {
 		if (--self.pending == 0) cb();
