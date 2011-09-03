@@ -308,7 +308,7 @@ this.drawImage = function(isrc, x, y) {
 		self.c.globalCompositeOperation = 'over';
 	}
 	catch (e) {
-		console.log('!! drawImage', i.data.src, ':', e.message);
+		console.log('!! drawImage', isrc, ':', e.message);
 	}
 }
 
