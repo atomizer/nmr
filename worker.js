@@ -82,14 +82,14 @@ function renderToFile(options, cb) {
 	}
 }
 
+var jobsDone = 0;
+
 var me = new workerpool.Worker(function(action, data) {
 	var self = this;
-	this.jobs = 0;
 	if (action === 'render') renderToFile(data, function() {
 		self.saveResult('yay'); // for some reason it doesnt work without this
 		self.jobDone();
-		self.jobs++;
-		if (self.jobs > 5) process.exit(0);
+		if (++jobsDone > 4) self.end();
 	});
 });
 

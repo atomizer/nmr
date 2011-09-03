@@ -71,7 +71,7 @@ function serve(req, res) {
 				if (err) {
 					res.writeHead(503);
 					res.write('503 Internal Server Error\n\n');
-					res.end(err);
+					res.end();
 					return;
 				}
 				res.writeHead(302, {'Location': req.original_url});

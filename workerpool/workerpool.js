@@ -22,7 +22,7 @@ IN THE SOFTWARE.
 var sys = require("sys");
 var child_process = require("child_process");
 
-function Worker (workerScript) {
+function Worker (workerScript, pool) {
 	this.workerScript = workerScript;
 	this.process = child_process.spawn("node", [this.workerScript]);
 	var self = this;
@@ -35,6 +35,8 @@ function Worker (workerScript) {
 	});
 	this.process.addListener('exit', function (code) {
 		sys.debug('worker process exited with code ' + code);
+		if (pool.pullWorker(self, pool.activeWorkers) || pool.pullWorker(self, pool.idleWorkers))
+			sys.debug('manual pull');
 		if (self.timer) {
 			clearTimeout(self.timer);
 			self.timer = null;
@@ -157,7 +159,7 @@ WorkerPool.prototype.checkMaxWorkers = function WorkerPool$checkMaxWorkers () {
 }
 WorkerPool.prototype.addWorker = function WorkerPool$addWorker() {
 	if ((this.idleWorkers.length + this.activeWorkers.length) < this.options.maxWorkers)
-		this.idleWorkers.push(new Worker(this.workerScript));
+		this.idleWorkers.push(new Worker(this.workerScript, this));
 }
 WorkerPool.prototype.getWorker = function WorkerPool$getWorker () {
 	if (!this.idleWorkers.length)
