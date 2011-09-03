@@ -677,6 +677,7 @@ this.drawObject = function(str) {
 		
 		var r = +params[5];
 		if (isNaN(r) || r > 2 || r < 0) r = -1;
+		if (dt == 132) r = 0;
 		self.c.rotate(r * PI * 0.15);
 		
 		self.clr(dt-3, eyeF);
