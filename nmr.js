@@ -268,13 +268,13 @@ this.prepImage = function(urlf, blend, cb) {
 	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
-	request(url, function(e, res, body) {
+	request({uri: url, encoding: 'binary'}, function(e, res, body) {
 		if (e || res.statusCode != 200) {
 			if (--self.pending == 0) cb();
 			return;
 		}
 		var img = new Image();
-		img.src = new Buffer(body);
+		img.src = new Buffer(body, 'binary');
 		self.images[urlf] = { data: img, blend: blend };
 		if (--self.pending == 0) cb();
 	});
