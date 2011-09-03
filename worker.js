@@ -89,7 +89,7 @@ var me = new workerpool.Worker(function(action, data) {
 	if (action === 'render') renderToFile(data, function() {
 		self.saveResult('yay'); // for some reason it doesnt work without this
 		self.jobDone();
-		if (++jobsDone > 4) self.end();
+		if (++jobsDone > 4) process.exit(0);
 	});
 });
 
