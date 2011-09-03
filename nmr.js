@@ -353,6 +353,9 @@ this.drawObject = function(str) {
 	// --------- coordinate correction
 	
 	var x = +params[0], y = +params[1];
+	if (t == 11) { // exit door
+		x = +params[2]; y = +params[3];
+	}
 	// this is a way to hide door without hiding switch
 	// and without if () {...} madness, which we have plenty of already
 	if (isNaN(x+y)) x = y = FARAWAY;
@@ -389,24 +392,23 @@ this.drawObject = function(str) {
 			sw = 5;	door = 0;
 		}
 		var r = 0;
-		var sx = x, sy = y;
-		x = (+params[4] + +params[7])*24 + 12;
-		y = (+params[5] + +params[8])*24 + 12;
-		if (isNaN(x+y)) x = y = FARAWAY;
+		dx = (+params[4] + +params[7])*24 + 12;
+		dy = (+params[5] + +params[8])*24 + 12;
+		if (isNaN(dx+dy)) dx = dy = FARAWAY;
 		
 		if (door) {  // door
 			if (+params[2]) {  // horisontal ?
 				if (+params[8]) {  // Y shift
-					r = 3; y += 24;
+					r = 3; dy += 24;
 				} else r = 1;
 			} else {
 				if (+params[7]) {  // X shift
-					r = 2; x += 24;
+					r = 2; dx += 24;
 				} else r = 0;
 			}
 			if (locked) {
-				x -= +(r == 2);
-				y -= +(r == 3);
+				dx -= +(r == 2);
+				dy -= +(r == 3);
 			}
 		}
 	}
@@ -729,6 +731,9 @@ this.drawObject = function(str) {
 		if (locked && r > 1 && self.tilesize == 24) p[2] = 1;
 		p = rotate_pts(p, r);
 		if (door) {  // door
+			if (zoomed) { self.popzoom(); zoomed = 0; }
+			self.c.restore(); self.c.save();
+			self.c.translate(self.rnd(dx, 1), self.rnd(dy, 1));
 			self.clr(t, '#797988', '#333');
 			self.rect(p[0], p[1], p[2], p[3], 1, 1, 1);
 			if (locked) {
@@ -740,7 +745,7 @@ this.drawObject = function(str) {
 			self.c.lineJoin = 'bevel';
 			if (zoomed) { self.popzoom(); zoomed = 0; }
 			self.c.restore(); self.c.save();
-			self.c.translate(self.rnd(sx, 1), self.rnd(sy, 1));
+			self.c.translate(self.rnd(x, 1), self.rnd(y, 1));
 			self.clr(null, '#acacb5', '#5f5f6b');
 			self.rect(0, 0, sw, sw, 1, 1, 1);
 			self.clr(null, '#666', '#000');
@@ -753,6 +758,11 @@ this.drawObject = function(str) {
 		self.circle(0, 0, 3.05, 1);
 	break;
 	case 11: // exit
+		dx = +params[0]; dy = +params[1];
+		if (isNaN(dx+dy)) dx = dy = FARAWAY;
+		if (zoomed) { self.popzoom(); zoomed = 0; }
+		self.c.restore(); self.c.save();
+		self.c.translate(self.rnd(dx, 1), self.rnd(dy, 1));
 		self.clr(t, '#b0b0b9', '#333');
 		self.rect(0, 0, 24.36, 24, 1, 1, 1);
 		self.rect(0, -12, 12.18, 24, 0, 0, 1);
@@ -760,8 +770,6 @@ this.drawObject = function(str) {
 		self.rect(0, 0, 17, 17, 1, 0, 1);
 		self.rect(0, -8.5, 8.5, 17, 0, 0, 1);
 		// exit key
-		x = +params[2]; y = +params[3];
-		if (isNaN(x+y)) x = y = FARAWAY;
 		if (zoomed) { self.popzoom(); zoomed = 0; }
 		self.c.restore(); self.c.save();
 		self.c.translate(self.rnd(x, 1), self.rnd(y, 1));
