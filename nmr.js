@@ -8,8 +8,6 @@ var fs = require('fs'),
 
 var font = require('./font');
 
-var IMAGE_ROOT = '/home/node/static/images';
-
 var PI = Math.PI;
 var FARAWAY = -1e4;
 var COLS = 31, ROWS = 23;
@@ -270,36 +268,15 @@ this.prepImage = function(urlf, blend, cb) {
 	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
-	var filename = path.join(IMAGE_ROOT, hashed(url) + '.' + m[2]);
-	
-	function expandImages() {
-		var img = new Image();
-		img.onload = function () {
-			self.images[urlf] = { data: img, blend: blend }
-			if (--self.pending == 0) cb();
-		}
-		img.onerror = function (e) {
-			console.log('!! image.onerror', filename, e.message)
-			if (--self.pending == 0) cb();
-		}
-		img.src = filename;
-	}
-	
-	if (path.existsSync(filename)) {
-		expandImages();
-		return;
-	}
-	
 	request({uri: url, encoding: 'binary'}, function(e, res, body) {
 		if (e || res.statusCode != 200) {
-			console.log('!! request', url,
-				res && res.statusCode ? res.statusCode : (e && e.message ? e.message : ''));
 			if (--self.pending == 0) cb();
 			return;
 		}
-		fs.writeFileSync(filename, body, 'binary');
-		console.log('#', url, '=>', filename);
-		expandImages();
+		var img = new Image();
+		img.src = body;
+		self.images[urlf] = { data: img, blend: blend };
+		if (--self.pending == 0) cb();
 	});
 }
 
