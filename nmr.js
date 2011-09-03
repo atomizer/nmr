@@ -268,7 +268,7 @@ this.prepImage = function(urlf, blend, cb) {
 	
 	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
-	request({uri: url, encoding: 'binary'}, function(e, res, body) {
+	request({uri: url, encoding: 'binary', timeout: 5000}, function(e, res, body) {
 		if (e || res.statusCode != 200) {
 			if (--self.pending == 0) cb();
 			return;
