@@ -266,7 +266,7 @@ this.prepImage = function(urlf, blend, cb) {
 	self.images[urlf] = {};
 	blend = blend || +m[3] || 0;
 	
-	if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
+	//if (!cb) cb = function(){ console.log('!! generic callback on prepImage') };
 	
 	request({uri: url, encoding: 'binary', timeout: 5000}, function(e, res, body) {
 		if (e || res.statusCode != 200) {
@@ -308,7 +308,7 @@ this.drawImage = function(isrc, x, y) {
 		self.c.globalCompositeOperation = 'over';
 	}
 	catch (e) {
-		console.log('!! drawImage', isrc, ':', e.message);
+		//console.log('!! drawImage', i.data.src, ':', e.message);
 	}
 }
 
@@ -873,7 +873,7 @@ this._render = function(s, cb) {
 	if (self.rendering) return;
 	self.rendering = 1;
 	
-	console.time('render');
+	//console.time('render');
 	var timer = new Date;
 
 	var t = s[0];  // tiles
@@ -948,7 +948,7 @@ this._render = function(s, cb) {
 		self.c.putImageData(iData, 0, 0);
 	}
 	
-	console.timeEnd('render');
+	//console.timeEnd('render');
 	cb(self.ca);
 }
 
