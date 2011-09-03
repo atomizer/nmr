@@ -6,7 +6,7 @@ var http = require('http'),
 
 var MAP_URI = 'http://www.nmaps.net/ID/data';
 
-var ROOT = '/home/node/static';
+var ROOT = require('path').join(__dirname, 'static');
 var lock = {};
 
 function serve(req, res) {
