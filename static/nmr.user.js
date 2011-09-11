@@ -8,8 +8,13 @@
 // ==/UserScript==
 
 // removing the default functions
-if (unsafeWindow.larger) unsafeWindow.larger = function(){};
-if (unsafeWindow.smaller) unsafeWindow.smaller = function(){};
+if (unsafeWindow) {
+	unsafeWindow.larger = function(){};
+	unsafeWindow.smaller = function(){};
+}
+
+if (larger) larger = function(){};
+if (smaller) smaller = function(){};
 
 var oldre = /static.notdot.net\/numa\/(thumbs|full)\/(\d+)$/;
 
