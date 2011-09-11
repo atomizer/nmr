@@ -7,6 +7,10 @@
 // @include        http://forum.ninjarobotyeti.com/*
 // ==/UserScript==
 
+// removing the default functions
+unsafeWindow.larger = function(){};
+unsafeWindow.smaller = function(){};
+
 var oldre = /static.notdot.net\/numa\/(thumbs|full)\/(\d+)$/;
 
 function toggleThumb(img) {
