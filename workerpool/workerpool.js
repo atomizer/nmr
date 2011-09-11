@@ -108,7 +108,12 @@ Worker.prototype.writeJob = function Worker$writeJob (job, callback, timeout) {
 		}, timeout);
 	}
 	var data = JSON.stringify({ action: job.action, data: job.data });
-	this.process.stdin.write(data.length + "\n" + data, "utf8");
+	try {
+		this.process.stdin.write(data.length + "\n" + data, "utf8");
+	} catch (e) {
+		sys.debug("Error while writing job, terminating")
+		this.end();
+	}
 }
 
 function WorkerPool (workerScript, options) {
