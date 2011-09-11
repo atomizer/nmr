@@ -1,3 +1,11 @@
+### Userscript
+
+On Firefox, install GreaseMonkey or Scriptish first. On Chrome and Opera it should go as-is.
+
+http://nmr.no.de/nmr.user.js
+
+After installing, check out [this page](http://www.nmaps.net/browse?q=nreality%20rated&random=1&count=20).
+
 ### URL format
 
 * full view: `http://nmr.no.de/[numa map id]`
