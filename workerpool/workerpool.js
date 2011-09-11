@@ -48,6 +48,10 @@ function Worker (workerScript, pool) {
 			callback({ error: 1, desc: "job failed" }, null, true);
 		}
 	});
+	this.streamReady = true;
+	this.process.stdin.on('drain', function() {
+		self.streamReady = true;
+	});
 }
 Worker.reOffset = /^(\d+)\n/m;
 Worker.prototype.workerScript = "";
@@ -75,7 +79,7 @@ Worker.prototype.processBuffer = function Worker$processBuffer () {
 			clearTimeout(this.timer);
 			this.timer = null;
 		}
-		this.active = false;
+		this.active = !this.streamReady;
 		var result = this.buffer.substring(0, this.resultLen);
 		this.buffer = this.buffer.substring(this.resultLen);
 		this.resultLen = -1;
@@ -109,7 +113,7 @@ Worker.prototype.writeJob = function Worker$writeJob (job, callback, timeout) {
 	}
 	var data = JSON.stringify({ action: job.action, data: job.data });
 	if (this.process.stdin.writable) {
-		this.process.stdin.write(data.length + "\n" + data, "utf8");
+		this.streamReady = this.process.stdin.write(data.length + "\n" + data, "utf8");
 	} else {
 		sys.debug("Worker stream is not writable, terminating")
 		this.end();
