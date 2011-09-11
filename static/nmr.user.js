@@ -7,15 +7,6 @@
 // @include        http://forum.ninjarobotyeti.com/*
 // ==/UserScript==
 
-// removing the default functions
-if (unsafeWindow) {
-	unsafeWindow.larger = function(){};
-	unsafeWindow.smaller = function(){};
-}
-
-if (larger) larger = function(){};
-if (smaller) smaller = function(){};
-
 var oldre = /static.notdot.net\/numa\/(thumbs|full)\/(\d+)$/;
 
 function toggleThumb(img) {
@@ -31,6 +22,7 @@ for (var k = 0; k < document.images.length; k++) {
 	var img = document.images[k];
 	var m = oldre.exec(img.src);
 	if (!m) continue;
+	img.onmouseover = img.onmouseout = '';
 	img.style.cursor = 'all-scroll';
 	img.addEventListener('click', function(e) {
 		e.stopPropagation();
