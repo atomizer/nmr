@@ -108,10 +108,10 @@ Worker.prototype.writeJob = function Worker$writeJob (job, callback, timeout) {
 		}, timeout);
 	}
 	var data = JSON.stringify({ action: job.action, data: job.data });
-	try {
+	if (this.process.stdin.writable) {
 		this.process.stdin.write(data.length + "\n" + data, "utf8");
-	} catch (e) {
-		sys.debug("Error while writing job, terminating")
+	} else {
+		sys.debug("Worker stream is not writable, terminating")
 		this.end();
 	}
 }
